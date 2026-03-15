@@ -11,5 +11,6 @@ public class Shipment implements Serializable{
         this.items = items;
         this.shipmentDate = shipmentDate;
     }
+
     
 }
