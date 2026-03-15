@@ -6,10 +6,8 @@ import java.nio.charset.StandardCharsets;
 public class RouterTest {
 
     public static void main(String[] args) {
-        // 1. Point this to exactly where your executable lives.
-        // If it's in a folder called "build", make it "build/amd64.exe"
         String routerPath = "router-windows-amd64.exe"; 
-
+        
         try {
             System.out.println("Starting Router Process...");
             
