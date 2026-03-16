@@ -38,6 +38,8 @@ public class Main {
             e.printStackTrace();
         }
 
+
+        // ########################################### router  test ############################
         String routerPath = "router-windows-amd64.exe"; 
         try {
             System.out.println("Starting Router Process...");
