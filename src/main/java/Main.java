@@ -10,8 +10,7 @@ import com.google.gson.Gson;
 
 public class Main {
     public static void main(String[] args){
-
-
+        
         String shipmentPath = "Data\\sample-data\\level1\\shipments.json";       // adresas iki json failo shipments.json
     
         Gson gson = new Gson(); 
@@ -40,7 +39,7 @@ public class Main {
 
 
         // ########################################### router  test ############################
-        String routerPath = "router-windows-amd64.exe"; 
+        String routerPath = "Data\\router\\router-windows-amd64.exe"; 
         try {
             System.out.println("Starting Router Process...");
             
