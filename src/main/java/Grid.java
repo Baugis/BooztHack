@@ -1,6 +1,7 @@
 import java.util.*;
 
 public class Grid {
+    /* <============================================= ISTRINTI CIA
     private final String gridID;
     //Map leidzia paimti bet koki bina pagal jo ID O(1) laiku
     //paima String ID ir grazina Bin objekta kuriame laikomi daiktai
@@ -63,5 +64,6 @@ public class Grid {
 
     public String getId() {return id;}
     public List<Shift> getShifts() {return Collections.unmodifiableList(shifts);}
+    ISTRINTI SITA ==============================> */
 
 }

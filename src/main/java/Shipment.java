@@ -12,5 +12,7 @@ public class Shipment implements Serializable{
         this.shipmentDate = shipmentDate;
     }
 
-    
+    public static void readShipment(){
+        
+    }
 }
