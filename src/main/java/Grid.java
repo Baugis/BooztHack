@@ -2,7 +2,7 @@ import java.util.*;
 
 public class Grid {
     
-    private final String id;
+    private final String gridId;
     //Map leidzia paimti bet koki bina pagal jo ID O(1) laiku
     //paima String ID ir grazina Bin objekta kuriame laikomi daiktai
     private final Map<String, Bin> bins;
@@ -15,6 +15,7 @@ public class Grid {
     private final Queue<Shipment> gridQueue;
 
     public Grid(String gridID, List<Shift> shifts){
+        this.gridId = gridID; 
         this.shifts = new ArrayList<>(shifts);
         this.bins = new HashMap<>();
         this.gridQueue = new LinkedList<>();
@@ -59,9 +60,10 @@ public class Grid {
 
     //Grazina read only queue perziura
     public Queue<Shipment> getGridQueue() {
-        return Collections.unmodifiableQueue(gridQueue);
+        // return Collections.unmodifiableQueue(gridQueue);  SITAS NETIKO PASIULE PAKEISTI SITU
+        return new LinkedList<>(gridQueue); // Returns a safe copy
     }
 
-    public String getId() {return id;}
+    public String getId() {return gridId;}
     public List<Shift> getShifts() {return Collections.unmodifiableList(shifts);}
 }
