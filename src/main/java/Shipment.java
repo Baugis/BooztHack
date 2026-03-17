@@ -15,11 +15,10 @@ public class Shipment implements Serializable{
         PACKED,         // Reikia skaiciuoti Dwell time - laika kol pakeis busena i shipped
         SHIPPED
     }               
-    private ShipmentStatus status;
-    
-    private final long receivedTime; // Simuliacijos sekundes kai gautas uzsakymas
-    private long packedTime;         // tikrinam ar "Packed on Time"
-    private long shippedTime;        // skaiciuojam "Lead Time"
+    private transient ShipmentStatus status;
+    private transient long receivedTime; 
+    private transient long packedTime = -1; 
+    private transient long shippedTime = -1;
 
 // Fixed: Public constructor + dynamic time
     public Shipment(String id, Map<String, Integer> items, 

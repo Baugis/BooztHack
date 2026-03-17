@@ -22,7 +22,7 @@ public class DataLoader {
         }
     }
 
-    public List<Grid> loadGridJson(){
+    public List<Grid> loadGridsJson(){
         try ( FileReader fileReader = new FileReader(gridPath)) {
             Grid[] gridArray = gson.fromJson(fileReader, Grid[].class);
             return (gridArray != null) ? new ArrayList<>(Arrays.asList(gridArray)) : new ArrayList<>();
@@ -33,7 +33,7 @@ public class DataLoader {
         }
     }
 
-    public List<Grid> loadBinJson(){
+    public List<Bin> loadBinsJson(){
         try ( FileReader fileReader = new FileReader(binPath)) {
             Bin[] binArray = gson.fromJson(fileReader, Bin[].class);
             return (binArray != null) ? new ArrayList<>(Arrays.asList(binArray)) : new ArrayList<>();

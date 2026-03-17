@@ -2,11 +2,25 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 
 
 public class Main {
     public static void main(String[] args){
+
+        DataLoader loader = new DataLoader();
+        List<Shipment> shipments = loader.loadShipmentsJson();
+        List<Bin> bins = loader.loadBinsJson();
+        List<Grid> grids = loader.loadGridsJson();
+        Gson prettyGson = new GsonBuilder().setPrettyPrinting().create();
+
+        System.out.println(prettyGson.toJson(shipments));
+        System.out.println(prettyGson.toJson(bins));
+        System.out.println(prettyGson.toJson(grids));
 
         // ########################################### router  test ############################
         String routerPath = "Data\\router\\router-windows-amd64.exe"; 
