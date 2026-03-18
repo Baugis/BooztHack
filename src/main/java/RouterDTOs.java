@@ -70,4 +70,30 @@ public class RouterDTOs {
         @SerializedName("handling_flags")
         public List<String> handlingFlags = new ArrayList<>();
     }
+
+    // cia jau kitam zingsniui simuliacijos enginui. Verciam JSON i java objects atgal
+    public static class Response {
+        public List<Assignment> assignments = new ArrayList<>();
+    }
+
+    public static class Assignment {
+        @SerializedName("shipment_id")
+        public String shipmentId;
+        
+        public int priority;
+        
+        @SerializedName("packing_grid")
+        public String packingGrid;
+        
+        public List<Pick> picks = new ArrayList<>();
+    }
+
+    public static class Pick {
+        public String ean;
+        
+        @SerializedName("bin_id")
+        public String binId;
+        
+        public int qty;
+    }
 }
