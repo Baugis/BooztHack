@@ -86,7 +86,8 @@ public class BinArrivedAtPort extends Event {
                 binId,
                 ean,
                 qty,
-                pickDuration
+                pickDuration,
+                gridId
         ));
 
         System.out.printf("[%.0fs] Pick scheduled: %d x %s from bin %s, takes %.1fs%n",
