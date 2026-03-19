@@ -1,4 +1,4 @@
-package src.main.java.events;import java.util.PriorityQueue;
+import java.util.PriorityQueue;
 
 public class EventQueue {
 

@@ -1,7 +1,3 @@
-package events;
-
-import events.Event;
-import events.Simulation;
 
 /**
  * EVENT: BinArrivedAtPort

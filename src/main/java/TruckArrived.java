@@ -1,11 +1,3 @@
-package events;
-
-import events.Event;
-import events.Simulation;
-
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * EVENT: TruckArrived
  *

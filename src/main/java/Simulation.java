@@ -1,4 +1,4 @@
-package src.main.java.events;public class Simulation {
+public class Simulation {
 
     private final EventQueue eventQueue;
     private double currentTime;
