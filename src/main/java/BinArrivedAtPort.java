@@ -1,4 +1,3 @@
-
 /**
  * EVENT: BinArrivedAtPort
  *
@@ -8,6 +7,7 @@
  * Schedules a BinPickCompleted event after the appropriate pick duration
  * (Standard: 140 units/hour, Fragile: 70 units/hour).
  */
+
 public class BinArrivedAtPort extends Event {
 
     // From spec section 9.2
@@ -23,16 +23,18 @@ public class BinArrivedAtPort extends Event {
     private final String binId;
     private final String ean;
     private final int qty;
+    private final String gridId;
 
     public BinArrivedAtPort(double simTime, long sequenceNumber,
                             String portId, String shipmentId,
-                            String binId, String ean, int qty) {
+                            String binId, String ean, int qty, String gridId) {
         super(simTime, sequenceNumber);
         this.portId     = portId;
         this.shipmentId = shipmentId;
         this.binId      = binId;
         this.ean        = ean;
         this.qty        = qty;
+        this.gridId = gridId;
     }
 
     @Override
@@ -46,7 +48,17 @@ public class BinArrivedAtPort extends Event {
             return;
         }
 
-        Bin bin = sim.getBin(binId);
+        Grid grid = sim.getGrid(gridId);
+        if (grid == null) {
+            System.err.println("BinArrivedAtPort: unknown grid " + gridId);
+            return;
+        }
+
+        Bin bin = grid.getBin(binId);
+        if (bin == null) {
+            System.err.println("BinArrivedAtPort: unknown bin " + binId);
+            return;
+        }
         if (bin == null) {
             System.err.println("BinArrivedAtPort: unknown bin " + binId);
             return;
@@ -74,7 +86,8 @@ public class BinArrivedAtPort extends Event {
                 binId,
                 ean,
                 qty,
-                pickDuration
+                pickDuration,
+                gridId
         ));
 
         System.out.printf("[%.0fs] Pick scheduled: %d x %s from bin %s, takes %.1fs%n",

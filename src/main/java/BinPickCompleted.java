@@ -18,10 +18,11 @@ public class BinPickCompleted extends Event {
     private final String ean;
     private final int qty;
     private final double pickDuration; // for logging/metrics
+    private final String gridId;
 
     public BinPickCompleted(double simTime, long sequenceNumber,
                             String portId, String shipmentId,
-                            String binId, String ean, int qty, double pickDuration) {
+                            String binId, String ean, int qty, double pickDuration, String gridId) {
         super(simTime, sequenceNumber);
         this.portId       = portId;
         this.shipmentId   = shipmentId;
@@ -29,6 +30,7 @@ public class BinPickCompleted extends Event {
         this.ean          = ean;
         this.qty          = qty;
         this.pickDuration = pickDuration;
+        this.gridId = gridId;
     }
 
     @Override
@@ -42,13 +44,19 @@ public class BinPickCompleted extends Event {
             return;
         }
 
-        Bin bin = sim.getBin(binId);
+        Grid grid = sim.getGrid(gridId);
+        if (grid == null) {
+            System.err.println("BinArrivedAtPort: unknown grid " + gridId);
+            return;
+        }
+
+        Bin bin = grid.getBin(binId);
         if (bin == null) {
             System.err.println("BinPickCompleted: unknown bin " + binId);
             return;
         }
 
-        Grid grid = sim.getGrid(shipment.getPackingGrid());
+        //Grid grid = sim.getGrid(shipment.getPackingGrid()); -> lyg ir ankstesnis grid turetu tikti
         Port port = grid != null ? grid.getPort(portId) : null;
 
         // --- 1. Deduct the picked items from the bin's stock ---
