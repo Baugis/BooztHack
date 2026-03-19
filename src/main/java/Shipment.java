@@ -1,11 +1,18 @@
 import java.io.Serializable;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
+
 public class Shipment implements Serializable{
 
-    private final String id;                                              // shipment id 
+    private final String id;                                             
     public final Map<String, Integer> items;
     public final String shipmentDate;
-    
+    public final String sortingDirection;
+
+
+    Set<String> handlingFlags = new HashSet<>();  // e.g fragile, heavy ir t.t
+
     public enum ShipmentStatus{
         RECEIVED,
         ROUTED,
@@ -14,20 +21,32 @@ public class Shipment implements Serializable{
         PICKING,
         PACKED,         // Reikia skaiciuoti Dwell time - laika kol pakeis busena i shipped
         SHIPPED
-    }               
+    }      
+    
+    
     private transient ShipmentStatus status;
-    private transient long receivedTime; 
-    private transient long packedTime = -1; 
-    private transient long shippedTime = -1;
+    private transient double receivedTime; 
+    private transient double packedTime = -1; 
+    private transient double shippedTime = -1;
 
-// Fixed: Public constructor + dynamic time
-    public Shipment(String id, Map<String, Integer> items, 
-                    String shipmentDate, long simTime) {
+
+    // 1. The MASTER Constructor kai naudojam visus JSON atributus
+    public Shipment(String id, Map<String, Integer> items, String shipmentDate, 
+                    double simTime, Set<String> handlingFlags, String sortingDirection) {
         this.id = id;
         this.items = items;
         this.shipmentDate = shipmentDate;
+        this.handlingFlags = (handlingFlags != null) ? handlingFlags : new HashSet<>();
+        this.sortingDirection = (sortingDirection != null) ? sortingDirection : "NONE";
         this.status = ShipmentStatus.RECEIVED; 
         this.receivedTime = simTime; 
+    }
+
+    // 2. Level 1 konstruktorius, kai nenaudojame visu parametru
+    public Shipment(String id, Map<String, Integer> items,
+                    String shipmentDate, double simTime) {
+        this(id, items, shipmentDate, simTime, new HashSet<>(),
+        "DEFAULT-DIR");
     }
 
     public void markAsPicking(long simTime){
@@ -39,7 +58,7 @@ public class Shipment implements Serializable{
         this.packedTime = simTime; 
     }
 
-    public void markAsShipped(long simTime) {
+    public void markAsShipped(double simTime) {
         this.status = ShipmentStatus.SHIPPED; 
         this.shippedTime = simTime; 
     }
@@ -47,7 +66,10 @@ public class Shipment implements Serializable{
     // Getters
     public String getId() { return id; }
     public ShipmentStatus getStatus() { return status; }
-    public long getReceivedTime() { return receivedTime; }
-    public long getPackedTime() { return packedTime; }
-    public long getShippedTime() { return shippedTime; }
+    public double getReceivedTime() { return receivedTime; }
+    public double getPackedTime() { return packedTime; }
+    public double getShippedTime() { return shippedTime; }
+    public Set<String> getHandlingFlags() { return handlingFlags; }
+    public String getSortingDirection() { return sortingDirection; }
+    
 }

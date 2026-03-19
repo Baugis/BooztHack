@@ -1,6 +1,7 @@
 import com.google.gson.Gson;
 import java.util.List;
 
+
 public class RouterStateConverter {
     private final Gson gson = new Gson();
 
@@ -17,7 +18,7 @@ public class RouterStateConverter {
                 sDto.id = s.getId();
                 sDto.createdAt = s.shipmentDate; 
                 sDto.items = s.items; 
-                // sDto.sortingDirection = s.getSortingDirection(); // Make sure to add this getter to Shipment.java!
+                // sDto.sortingDirection = s.getSortingDirection(); // prideti veliau Shipment.java!
                 sDto.sortingDirection = "dir-1"; // Hardcoded fallback for now
                 
                 stateDto.shipmentsBacklog.add(sDto);

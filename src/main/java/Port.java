@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 
+
 /**
  * Atspindi pakavimo stotį, kurioje daiktai yra imami iš Binų ir pakuojami į Siuntas.
  *
@@ -297,7 +298,7 @@ public class Port {
         this.status = Status.CLOSED;
         this.activeShipment = null;
     }
-
+    
     // -------------------------------------------------------------------------
     // Derinimas
     // -------------------------------------------------------------------------

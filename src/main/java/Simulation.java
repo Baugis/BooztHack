@@ -1,3 +1,6 @@
+import java.util.HashMap;
+import java.util.Map;
+
 public class Simulation {
 
     private final EventQueue eventQueue;

@@ -85,7 +85,7 @@ public class BinPickCompleted extends Event {
             }
         }
     }
-
+    
     /**
      * Schedules a BinArrivedAtPort for the next pick in this shipment.
      * Marks the bin OUTSIDE (it's now en route to the port).
