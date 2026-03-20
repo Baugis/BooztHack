@@ -1,19 +1,19 @@
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Map;
-import java.util.Set;
-import java.util.HashSet;
-import java.util.HashMap;
-
 public class DataLoader {
-    private final String shipmentPath = "Data/sample-data/level5/shipments.json";
-    private final String gridPath = "Data/sample-data/level5/grids.json";
-    private final String binPath = "Data/sample-data/level5/bins.json"; 
+    private final String shipmentPath = "Data/sample-data/level6/shipments.json";
+    private final String gridPath = "Data/sample-data/level6/grids.json";
+    private final String binPath = "Data/sample-data/level6/bins.json"; 
     private final Gson gson = new Gson();
 
     // --- 1. Load Shipments ---

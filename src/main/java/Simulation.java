@@ -105,8 +105,20 @@ public class Simulation {
     private String shiftTimeToIso(String hhMm) {
         LocalTime t = LocalTime.parse(hhMm, TIME_FMT);
         Instant instant = epochInstant
-                .truncatedTo(ChronoUnit.DAYS)
-                .plus(t.toSecondOfDay(), ChronoUnit.SECONDS);
+            .truncatedTo(ChronoUnit.DAYS)
+            .plus(t.toSecondOfDay(), ChronoUnit.SECONDS);
+        return instant.toString();
+    }
+
+    private String shiftTimeToIso(String hhMm, String startHhMm) {
+        LocalTime t     = LocalTime.parse(hhMm,      TIME_FMT);
+        LocalTime start = LocalTime.parse(startHhMm, TIME_FMT);
+        Instant instant = epochInstant
+            .truncatedTo(ChronoUnit.DAYS)
+            .plus(t.toSecondOfDay(), ChronoUnit.SECONDS);
+        if (!t.isAfter(start)) {
+            instant = instant.plus(1, ChronoUnit.DAYS);
+        }
         return instant.toString();
     }
 
@@ -151,7 +163,7 @@ public class Simulation {
                 RouterDTOs.ShiftDto sDto = new RouterDTOs.ShiftDto();
                 // Convert "HH:mm" -> full ISO timestamp so router can parse it
                 sDto.startAt = shiftTimeToIso(shift.getStartAt());
-                sDto.endAt   = shiftTimeToIso(shift.getEndAt());
+                sDto.endAt   = shiftTimeToIso(shift.getEndAt(), shift.getStartAt());
                 for (Shift.PortConfig cfg : shift.portConfig) {
                     RouterDTOs.PortConfigDto pDto = new RouterDTOs.PortConfigDto();
                     pDto.portId       = cfg.portId;
