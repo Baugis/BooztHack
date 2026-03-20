@@ -111,7 +111,7 @@ public class Port {
     // -------------------------------------------------------------------------
 
     /** @return unikalus porto identifikatorius */
-    public String getPortId() { return portId; }
+    public String getId() { return portId; }
 
     /** @return grido, kuriam priklauso šis portas, ID */
     public String getGridId() { return gridId; }
