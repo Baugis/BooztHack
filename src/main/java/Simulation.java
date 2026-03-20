@@ -1,3 +1,6 @@
+import java.util.HashMap;
+import java.util.Map;
+
 public class Simulation {
 
     private final EventQueue eventQueue;
@@ -50,4 +53,9 @@ public class Simulation {
     public Shipment getShipment(String id) { return shipments.get(id); }
     public void addGrid(Grid grid) { grids.put(grid.getId(), grid); }
     public void addShipment(Shipment s) { shipments.put(s.getId(), s); }
+        public java.util.Collection<Shipment> getAllShipments() {
+        return shipments.values();
+    }
+
+    
 }

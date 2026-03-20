@@ -38,7 +38,7 @@ public class RouterDTOs {
         public Map<String, Integer> items;
         @SerializedName("handling_flags")
         public List<String> handlingFlags = new ArrayList<>();
-        @SerializedName("sorting_direction")
+        @SerializedName("sorting_direction") // kai turesim truck schedules
         public String sortingDirection;
     }
 

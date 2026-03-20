@@ -1,9 +1,12 @@
 import java.io.FileReader;
 import java.io.IOException;
 import com.google.gson.Gson;
+import com.google.gson.annotations.SerializedName;
+
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.Set;
 import java.util.HashMap;
 
 public class DataLoader {
@@ -12,23 +15,36 @@ public class DataLoader {
     private final String binPath = "Data/sample-data/level1/bins.json"; 
     private final Gson gson = new Gson();
 
-    // --- 1. Load Shipments (Unchanged) ---
 // --- 1. Load Shipments (Using DTO) ---
-    private static class ShipmentLoadDto {
+private static class ShipmentLoadDto {
         String id;
         Map<String, Integer> items;
+        
+        @SerializedName("created_at") 
         String shipmentDate;
+        
+        @SerializedName("handling_flags")
+        Set<String> handlingFlags;
+        
+        @SerializedName("sorting_direction")
+        String sortingDirection;
     }
 
-    public List<Shipment> loadShipmentsJson() {
+public List<Shipment> loadShipmentsJson() {
         try (FileReader fileReader = new FileReader(shipmentPath)) {
             ShipmentLoadDto[] shipmentArray = gson.fromJson(fileReader, ShipmentLoadDto[].class);
             List<Shipment> shipments = new ArrayList<>();
             if (shipmentArray != null) {
                 for (ShipmentLoadDto dto : shipmentArray) {
-                    // This calls your REAL constructor, so status becomes RECEIVED!
-                    // Passing 0 for simTime for now since it's initial load
-                    shipments.add(new Shipment(dto.id, dto.items, dto.shipmentDate, 0));
+                    // Call the MASTER constructor with all the new data!
+                    shipments.add(new Shipment(
+                        dto.id, 
+                        dto.items, 
+                        dto.shipmentDate, 
+                        0.0, // simTime starts at 0.0
+                        dto.handlingFlags, 
+                        dto.sortingDirection
+                    ));
                 }
             }
             return shipments;
