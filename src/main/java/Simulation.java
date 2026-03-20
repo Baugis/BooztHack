@@ -16,17 +16,11 @@ public class Simulation {
     private double currentTime;
     private final double endTime;
 
-    // Simulation epoch — "time 0" in wall-clock terms
     private final Instant epochInstant;
 
-    // All simulation state
     private final Map<String, Port>     ports;
     private final Map<String, Grid>     grids;
     private final Map<String, Shipment> shipments;
-
-    // -------------------------------------------------------------------------
-    // Construction
-    // -------------------------------------------------------------------------
 
     public Simulation(double endTime, Instant epochInstant) {
         this.eventQueue    = new EventQueue();
@@ -56,25 +50,17 @@ public class Simulation {
     }
 
     // -------------------------------------------------------------------------
-    // Shift scheduling — call after all grids are loaded, before run()
+    // Shift scheduling
     // -------------------------------------------------------------------------
 
-    /**
-     * Reads every grid's shift list and schedules ShiftOpenEvents so ports
-     * open and close automatically during the simulation.
-     *
-     * The epoch instant is used as "time 0". Shift times like "07:00" are
-     * resolved relative to the epoch's date.
-     */
     public void scheduleAllShifts() {
-        LocalTime epochTime = LocalTime.ofInstant(epochInstant,
-                java.time.ZoneOffset.UTC);
+        LocalTime epochTime = LocalTime.ofInstant(epochInstant, java.time.ZoneOffset.UTC);
 
         for (Grid grid : grids.values()) {
             for (Shift shift : grid.getShifts()) {
                 LocalTime shiftStart = LocalTime.parse(shift.getStartAt(), TIME_FMT);
                 long offsetSecs = shiftStart.toSecondOfDay() - epochTime.toSecondOfDay();
-                if (offsetSecs < 0) offsetSecs += 86400; // next-day wrap
+                if (offsetSecs < 0) offsetSecs += 86400;
 
                 schedule(new ShiftOpenEvent(
                         offsetSecs,
@@ -111,6 +97,19 @@ public class Simulation {
         return now.toString();
     }
 
+    /**
+     * Converts a "HH:mm" shift time to a full ISO-8601 timestamp
+     * relative to the epoch date. Router requires full timestamps.
+     * e.g. "07:00" -> "2026-03-01T07:00:00Z"
+     */
+    private String shiftTimeToIso(String hhMm) {
+        LocalTime t = LocalTime.parse(hhMm, TIME_FMT);
+        Instant instant = epochInstant
+                .truncatedTo(ChronoUnit.DAYS)
+                .plus(t.toSecondOfDay(), ChronoUnit.SECONDS);
+        return instant.toString();
+    }
+
     // -------------------------------------------------------------------------
     // State accessors
     // -------------------------------------------------------------------------
@@ -136,11 +135,11 @@ public class Simulation {
     }
 
     public double getDeliveryDelay(String gridId) {
-        return 60.0; // seconds — replace with per-grid lookup at higher levels
+        return 60.0;
     }
 
     // -------------------------------------------------------------------------
-    // Router DTO builders
+    // Router DTO builders — shift times converted to full ISO timestamps
     // -------------------------------------------------------------------------
 
     public List<RouterDTOs.GridDto> getRouterGridDtos() {
@@ -150,12 +149,13 @@ public class Simulation {
             gDto.id = grid.getId();
             for (Shift shift : grid.getShifts()) {
                 RouterDTOs.ShiftDto sDto = new RouterDTOs.ShiftDto();
-                sDto.startAt = shift.getStartAt();
-                sDto.endAt   = shift.getEndAt();
-                for (Port port : getAllPorts()) {
+                // Convert "HH:mm" -> full ISO timestamp so router can parse it
+                sDto.startAt = shiftTimeToIso(shift.getStartAt());
+                sDto.endAt   = shiftTimeToIso(shift.getEndAt());
+                for (Shift.PortConfig cfg : shift.portConfig) {
                     RouterDTOs.PortConfigDto pDto = new RouterDTOs.PortConfigDto();
-                    pDto.portId = port.getId();
-                    pDto.handlingFlags = new ArrayList<>(port.getHandlingFlags());
+                    pDto.portId       = cfg.portId;
+                    pDto.handlingFlags = new ArrayList<>(cfg.handlingFlags);
                     sDto.portConfig.add(pDto);
                 }
                 gDto.shifts.add(sDto);

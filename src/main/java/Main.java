@@ -27,11 +27,7 @@ public class Main {
         // 2. Determine simulation epoch from the earliest shipment's createdAt
         //    All event times are measured in seconds from this instant.
         // -------------------------------------------------------------------------
-        Instant epoch = shipments.stream()
-        .filter(s -> s.createdAt != null)
-        .map(s -> Instant.parse(s.createdAt))
-        .min(Instant::compareTo)
-        .orElse(Instant.parse("2026-03-01T00:00:00Z"));
+        Instant epoch = Instant.parse("2026-03-01T00:00:00Z");;
 
         System.out.println("Simulation epoch: " + epoch);
 

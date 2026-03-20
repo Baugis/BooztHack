@@ -55,7 +55,11 @@ public class BinPickCompleted extends Event {
             return;
         }
 
-        Port port = sim.getPort(portId);
+        Port port = null;
+        for (Grid g : sim.getAllGrids()) {
+            port = g.getPort(portId);
+            if (port != null) break;
+        }
         if (port == null) {
             System.err.println("PortPickCompleted: unknown port " + portId);
             return;

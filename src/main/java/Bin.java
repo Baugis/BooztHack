@@ -142,11 +142,11 @@ public class Bin {
      * @throws IllegalStateException if the bin is not currently AVAILABLE
      */
     public void reserve(String portId) {
-        if (status != Status.AVAILABLE) {
-            throw new IllegalStateException(
-                "Bin " + binId + " cannot be reserved — current status: " + status
-            );
-        }
+    if (status != Status.AVAILABLE && status != Status.OUTSIDE) {
+        throw new IllegalStateException(
+            "Bin " + binId + " cannot be reserved — current status: " + status
+        );
+    }
         this.status = Status.RESERVED;
         this.reservedByPortId = portId;
     }
