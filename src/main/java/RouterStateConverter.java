@@ -11,13 +11,13 @@ public class RouterStateConverter {
         stateDto.now = currentSimTimeIso; // e.g., "2026-03-01T09:00:00Z"
 
         // 1. Convert Shipments
-        for (Shipment s : activeShipments) {
+        for (Shipment shipment : activeShipments) {
             // Only send shipments that haven't been routed/packed yet!
-            if (s.getStatus() == Shipment.ShipmentStatus.RECEIVED) {
+            if (shipment.getStatus() == Shipment.ShipmentStatus.RECEIVED) {
                 RouterDTOs.ShipmentDto sDto = new RouterDTOs.ShipmentDto();
-                sDto.id = s.getId();
-                sDto.createdAt = s.shipmentDate; 
-                sDto.items = s.items; 
+                sDto.id = shipment.getId();
+                sDto.createdAt = shipment.shipmentDate; 
+                sDto.items = shipment.items; 
                 // sDto.sortingDirection = s.getSortingDirection(); // prideti veliau Shipment.java!
                 sDto.sortingDirection = "dir-1"; // Hardcoded fallback for now
                 
