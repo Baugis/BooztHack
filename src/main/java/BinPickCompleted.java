@@ -60,7 +60,7 @@ public class BinPickCompleted extends Event {
 
         Port port = sim.getPort(portId);
         if (port == null) {
-            System.err.println("PortPickCompleted: unknown bin " + portId);
+            System.err.println("PortPickCompleted: unknown port " + portId);
             return;
         }
 
