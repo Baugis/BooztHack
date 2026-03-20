@@ -110,7 +110,7 @@ public class ShipmentRouterTriggered extends Event {
 
         // --- Step 4: Apply assignments ---
         if (response.assignments != null) {
-            for (RouterCaller.Assignment assignment : response.assignments) {
+            for (RouterDTOs.Assignment assignment : response.assignments) {
                 Shipment shipment = sim.getShipment(assignment.shipmentId);
                 if (shipment == null) {
                     System.err.println("Router returned unknown shipment ID: " + assignment.shipmentId);
@@ -213,7 +213,7 @@ public class ShipmentRouterTriggered extends Event {
 
         port.enqueue(shipment);
         System.out.printf("[%.0fs] %s assigned to port %s%n",
-                sim.getCurrentTime(), shipment.getId(), port.getPortId());
+                sim.getCurrentTime(), shipment.getId(), port.getId());
 
         if (port.getStatus() == Port.Status.IDLE) {
             Shipment next = port.startNextShipment();
