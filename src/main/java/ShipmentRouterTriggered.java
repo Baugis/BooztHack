@@ -188,7 +188,7 @@ public class ShipmentRouterTriggered extends Event {
                                                      RouterCaller.Assignment assignment) {
         List<RouterCaller.Pick> foreign = new ArrayList<>();
         if (assignment.picks == null) return foreign;
-        for (RouterCaller.Pick pick : assignment.picks) {
+        for (RouterDTOs.Pick pick : assignment.picks) {
             Bin bin = sim.getBin(pick.binId);
             if (bin != null && !bin.getGridId().equals(assignment.packingGrid)) {
                 foreign.add(pick);
@@ -224,7 +224,7 @@ public class ShipmentRouterTriggered extends Event {
     }
 
     private void requestNextBin(Simulation sim, Port port, Shipment shipment) {
-        RouterCaller.Pick pick = shipment.nextPick();
+        RouterDTOs.Pick pick = shipment.nextPick();
         if (pick == null) return;
 
         Bin bin = sim.getBin(pick.binId);
@@ -241,14 +241,14 @@ public class ShipmentRouterTriggered extends Event {
         sim.schedule(new BinArrivedAtPort(
                 arrivalTime,
                 sim.nextSequence(),
-                port.getPortId(),
+                port.getId(),
                 shipment.getId(),
                 pick.binId, pick.ean, pick.qty,
                 shipment.getPackingGrid()
         ));
 
         System.out.printf("[%.0fs] Bin %s requested at port %s (arrives in %.1fs)%n",
-                sim.getCurrentTime(), pick.binId, port.getPortId(), deliveryDelay);
+                sim.getCurrentTime(), pick.binId, port.getId(), deliveryDelay);
     }
 
     private void scheduleNext(Simulation sim) {

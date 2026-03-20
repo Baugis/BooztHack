@@ -90,7 +90,7 @@ public class BinTransferCompleted extends Event {
     }
 
     private void requestFirstBin(Simulation sim, Port port, Shipment shipment) {
-        RouterCaller.Pick pick = shipment.nextPick();
+        RouterDTOs.Pick pick = shipment.nextPick();
         if (pick == null) return;
         Bin bin = sim.getBin(pick.binId);
         if (bin == null) return;
@@ -99,7 +99,7 @@ public class BinTransferCompleted extends Event {
         sim.schedule(new BinArrivedAtPort(
                 sim.getCurrentTime() + delay,
                 sim.nextSequence(),
-                port.getPortId(),
+                port.getId(),
                 shipment.getId(),
                 pick.binId, pick.ean, pick.qty,
                 shipment.getPackingGrid()
