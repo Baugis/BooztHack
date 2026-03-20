@@ -154,7 +154,7 @@ public class Simulation {
                 sDto.endAt   = shift.getEndAt();
                 for (Port port : getAllPorts()) {
                     RouterDTOs.PortConfigDto pDto = new RouterDTOs.PortConfigDto();
-                    pDto.portId = port.getPortId();
+                    pDto.portId = port.getId();
                     pDto.handlingFlags = new ArrayList<>(port.getHandlingFlags());
                     sDto.portConfig.add(pDto);
                 }
