@@ -63,7 +63,6 @@ public class Grid {
         // return Collections.unmodifiableQueue(gridQueue);  SITAS NETIKO PASIULE PAKEISTI SITU
         return new LinkedList<>(gridQueue); // Returns a safe copy
     }
-
     public String getId() {return gridId;}
     public List<Shift> getShifts() {return Collections.unmodifiableList(shifts);}
 }
