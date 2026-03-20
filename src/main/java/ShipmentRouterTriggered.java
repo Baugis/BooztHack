@@ -36,19 +36,16 @@ public class ShipmentRouterTriggered extends Event {
         // --- Step 1: Rollback any ROUTED shipments still in grid queues ---
         // (they haven't been picked up by a port yet, so re-submit them)
         for (Grid grid : sim.getAllGrids()) {
-            List<Shipment> requeued = new ArrayList<>();
-            Shipment shipment;
-            while ((shipment = grid.dequeueShipment()) != null) {
-                if (shipment.getStatus() == Shipment.Status.ROUTED) {
-                    shipment.rollbackToReceived();
+            Shipment s;
+            while ((s = grid.dequeueShipment()) != null) {
+                if (s.getStatus() == Shipment.ShipmentStatus.ROUTED) {
+                    s.rollbackToReceived();
+                    // Now RECEIVED — the router below will re-assign it, don't re-queue
+                } else {
+                    // READY / CONSOLIDATION etc — already progressing, put back
+                    grid.enqueueShipment(s);
                 }
-                // If somehow still routed after rollback, just keep it
-                // (shouldn't happen, but be safe)
-                requeued.add(s);
             }
-            // Re-add non-rolled-back ones back (there shouldn't be any at Level 1)
-            // Actually: after rollback they're all RECEIVED now, don't re-queue them —
-            // they'll be picked up by the router below.
         }
 
         // --- Step 2: Build the router input from current simulation state ---
@@ -58,12 +55,12 @@ public class ShipmentRouterTriggered extends Event {
         // Collect all RECEIVED shipments for the backlog
         state.shipmentsBacklog = new ArrayList<>();
         for (Shipment shipment : sim.getAllShipments()) {
-            if (shipment.getStatus() == Shipment.Status.RECEIVED) {
+            if (shipment.getStatus() == Shipment.ShipmentStatus.RECEIVED) {
                 RouterCaller.ShipmentDto dto = new RouterCaller.ShipmentDto();
                 dto.id = shipment.getId();
                 dto.createdAt = shipment.getCreatedAt();
                 dto.items = shipment.getItems();
-                dto.handlingFlags = shipment.getHandlingFlags();
+                dto.handlingFlags = new java.util.ArrayList<>(shipment.getHandlingFlags());
                 dto.sortingDirection = shipment.getSortingDirection();
                 state.shipmentsBacklog.add(dto);
             }
@@ -200,7 +197,8 @@ public class ShipmentRouterTriggered extends Event {
                 shipment.getId(),
                 pick.binId,
                 pick.ean,
-                pick.qty
+                pick.qty,
+                shipment.getPackingGrid()
         ));
 
         System.out.printf("[%.0fs] Bin %s requested at port %s (arrives in %.1fs)%n",
