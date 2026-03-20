@@ -1,3 +1,6 @@
+
+import java.beans.SimpleBeanInfo;
+
 /**
  * EVENT: BinPickCompleted
  *
@@ -55,8 +58,12 @@ public class BinPickCompleted extends Event {
             return;
         }
 
-        //Grid grid = sim.getGrid(shipment.getPackingGrid()); -> the grid found above is correct
-        Port port = grid.getPort(portId);
+        Port port = sim.getPort(portId);
+        if (port == null) {
+            System.err.println("PortPickCompleted: unknown bin " + portId);
+            return;
+        }
+
 
         // --- 1. Deduct the picked items from the bin's stock ---
         bin.deductStock(ean, qty);
