@@ -85,7 +85,7 @@ public class BinPickCompleted extends Event {
                         pick.qty,
                         waiting.getPackingGrid()
                     ));
-                    System.out.printf("[%.0fs] Bin %s perduotas laukiančiam port %s%n",
+                    System.out.printf("[%.0fs] Bin %s handed to waiting port %s%n",
                         sim.getCurrentTime(), bin.getBinId(), nextPortId);
                 }
             }

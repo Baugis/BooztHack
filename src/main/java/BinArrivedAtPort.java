@@ -47,7 +47,7 @@ public class BinArrivedAtPort extends Event {
         // Jei siunta jau pakuota — ignoruoti
         if (shipment.getStatus() == Shipment.ShipmentStatus.PACKED ||
             shipment.getStatus() == Shipment.ShipmentStatus.SHIPPED) {
-            System.out.printf("[%.0fs] BinArrivedAtPort: ignoruojama — shipment %s jau %s%n",
+            System.out.printf("[%.0fs] BinArrivedAtPort: skipping — shipment %s already %s%n",
                 sim.getCurrentTime(), shipmentId, shipment.getStatus());
             return;
         }

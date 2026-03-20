@@ -11,9 +11,9 @@ import java.util.HashSet;
 import java.util.HashMap;
 
 public class DataLoader {
-    private final String shipmentPath = "Data/sample-data/level4/shipments.json";
-    private final String gridPath = "Data/sample-data/level4/grids.json";
-    private final String binPath = "Data/sample-data/level4/bins.json"; 
+    private final String shipmentPath = "Data/sample-data/level5/shipments.json";
+    private final String gridPath = "Data/sample-data/level5/grids.json";
+    private final String binPath = "Data/sample-data/level5/bins.json"; 
     private final Gson gson = new Gson();
 
     // --- 1. Load Shipments ---
