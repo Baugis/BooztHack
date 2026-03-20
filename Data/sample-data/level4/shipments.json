@@ -4,7 +4,8 @@
     "items": {
       "EAN-123": 1
     },
-    "shipmentDate": "2026-03-01T08:00:00Z"
+    "shipmentDate": "2026-03-01T08:00:00Z",
+    "handlingFlags": ["fragile"]
   },
   {
     "id": "S002",
