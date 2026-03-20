@@ -16,7 +16,7 @@ public class RouterStateConverter {
             if (shipment.getStatus() == Shipment.ShipmentStatus.RECEIVED) {
                 RouterDTOs.ShipmentDto sDto = new RouterDTOs.ShipmentDto();
                 sDto.id = shipment.getId();
-                sDto.createdAt = shipment.shipmentDate; 
+                sDto.createdAt = shipment.createdAt;
                 sDto.items = shipment.items; 
                 // sDto.sortingDirection = s.getSortingDirection(); // prideti veliau Shipment.java!
                 sDto.sortingDirection = "dir-1"; // Hardcoded fallback for now
