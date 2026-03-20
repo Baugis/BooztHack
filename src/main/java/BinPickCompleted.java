@@ -1,4 +1,3 @@
-
 /**
  * EVENT: BinPickCompleted
  *
@@ -56,8 +55,8 @@ public class BinPickCompleted extends Event {
             return;
         }
 
-        //Grid grid = sim.getGrid(shipment.getPackingGrid()); -> lyg ir ankstesnis grid turetu tikti
-        Port port = grid != null ? grid.getPort(portId) : null;
+        //Grid grid = sim.getGrid(shipment.getPackingGrid()); -> the grid found above is correct
+        Port port = grid.getPort(portId);
 
         // --- 1. Deduct the picked items from the bin's stock ---
         bin.deductStock(ean, qty);
@@ -119,7 +118,8 @@ public class BinPickCompleted extends Event {
                 shipmentId,
                 pick.binId,
                 pick.ean,
-                pick.qty
+                pick.qty,
+                shipment.getPackingGrid()  // gridId — needed so BinArrivedAtPort can find the bin
         ));
 
         System.out.printf("[%.0fs] Next bin requested: %s (arrives in %.1fs)%n",

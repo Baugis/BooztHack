@@ -156,9 +156,7 @@ public class Port {
      * @return true jei šis portas gali apdoroti visas siuntos vėliavėles
      */
     public boolean isCompatibleWith(Shipment shipment) {
-        return handlingFlags.containsAll(shipment.items.keySet());
-        // PASTABA: pakeiskite shipment.items.keySet() į shipment.getHandlingFlags()
-        // kai Shipment turės tinkamą getHandlingFlags() metodą.
+        return handlingFlags.containsAll(shipment.getHandlingFlags());
     }
 
     // -------------------------------------------------------------------------
@@ -175,12 +173,12 @@ public class Port {
     public void enqueue(Shipment shipment) {
         if (status == Status.CLOSED || status == Status.PENDING_CLOSE) {
             throw new IllegalStateException(
-                "Portas " + portId + " nepriima naujų siuntų — būsena: " + status
+                    "Portas " + portId + " nepriima naujų siuntų — būsena: " + status
             );
         }
         if (!hasQueueCapacity()) {
             throw new IllegalStateException(
-                "Porto " + portId + " eilė pilna (" + MAX_QUEUE_CAPACITY + " siuntų)"
+                    "Porto " + portId + " eilė pilna (" + MAX_QUEUE_CAPACITY + " siuntų)"
             );
         }
         shipmentQueue.add(shipment);
@@ -222,7 +220,7 @@ public class Port {
     public void startProcessing(Shipment shipment) {
         if (status != Status.IDLE) {
             throw new IllegalStateException(
-                "Portas " + portId + " negali pradėti apdorojimo — dabartinė būsena: " + status
+                    "Portas " + portId + " negali pradėti apdorojimo — dabartinė būsena: " + status
             );
         }
         this.activeShipment = shipment;
@@ -239,7 +237,7 @@ public class Port {
     public void finishProcessing() {
         if (activeShipment == null) {
             throw new IllegalStateException(
-                "Portas " + portId + " neturi aktyvios siuntos kurią baigti"
+                    "Portas " + portId + " neturi aktyvios siuntos kurią baigti"
             );
         }
         this.activeShipment = null;
@@ -262,7 +260,7 @@ public class Port {
     public void open() {
         if (status != Status.CLOSED) {
             throw new IllegalStateException(
-                "Portas " + portId + " negali būti atidarytas — dabartinė būsena: " + status
+                    "Portas " + portId + " negali būti atidarytas — dabartinė būsena: " + status
             );
         }
         this.status = Status.IDLE;
@@ -279,7 +277,7 @@ public class Port {
     public void requestClose() {
         if (status == Status.CLOSED || status == Status.PENDING_CLOSE) {
             throw new IllegalStateException(
-                "Portas " + portId + " jau užsidaro arba uždarytas — būsena: " + status
+                    "Portas " + portId + " jau užsidaro arba uždarytas — būsena: " + status
             );
         }
         if (status == Status.BUSY) {
@@ -298,18 +296,57 @@ public class Port {
         this.status = Status.CLOSED;
         this.activeShipment = null;
     }
-    
+
+    // -------------------------------------------------------------------------
+    // Convenience wrappers used by event classes
+    // -------------------------------------------------------------------------
+
+    /**
+     * Alias for isCompatibleWith — used in BinPickCompleted.
+     */
+    public boolean canHandle(Shipment shipment) {
+        return isCompatibleWith(shipment);
+    }
+
+    /**
+     * Dequeues the next shipment from this port's queue and starts processing it.
+     * Returns the started shipment, or null if the queue was empty.
+     * The port must be IDLE when this is called.
+     */
+    public Shipment startNextShipment() {
+        Shipment next = dequeue();
+        if (next == null) return null;
+        startProcessing(next);
+        return next;
+    }
+
+    /**
+     * Finishes the current shipment and immediately starts the next one
+     * from the port's queue if available.
+     *
+     * Returns the newly started shipment (so the caller can request its first bin),
+     * or null if the queue was empty and the port is now IDLE.
+     */
+    public Shipment finishCurrentShipment() {
+        finishProcessing(); // clears activeShipment, sets IDLE or CLOSED
+        if (status == Status.IDLE) {
+            return startNextShipment(); // may return null
+        }
+        return null; // port went CLOSED (was PENDING_CLOSE)
+    }
+
     // -------------------------------------------------------------------------
     // Derinimas
     // -------------------------------------------------------------------------
 
+
     @Override
     public String toString() {
         return "Port{id=" + portId +
-               ", grid=" + gridId +
-               ", status=" + status +
-               ", queueSize=" + shipmentQueue.size() +
-               ", active=" + (activeShipment != null ? activeShipment.id : "nėra") +
-               ", flags=" + handlingFlags + "}";
+                ", grid=" + gridId +
+                ", status=" + status +
+                ", queueSize=" + shipmentQueue.size() +
+                ", active=" + (activeShipment != null ? activeShipment.getId() : "nėra") +
+                ", flags=" + handlingFlags + "}";
     }
 }
