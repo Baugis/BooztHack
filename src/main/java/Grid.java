@@ -46,7 +46,7 @@ public class Grid {
     // -------------------------------------------------------------------------
 
     public void addPort(Port port) {
-        ports.put(port.getPortId(), port);
+        ports.put(port.getId(), port);
     }
 
     public Port getPort(String portId) {
