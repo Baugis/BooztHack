@@ -130,7 +130,7 @@ public class ShipmentRouterTriggered extends Event {
                 }
 
                 // Determine if any picks come from a different grid (consolidation case)
-                List<RouterCaller.Pick> foreignPicks = findForeignPicks(sim, assignment);
+                List<RouterDTOs.Pick> foreignPicks = findForeignPicks(sim, assignment);
 
                 if (!foreignPicks.isEmpty()) {
                     // --- 4.4 Consolidation path ---
@@ -140,7 +140,7 @@ public class ShipmentRouterTriggered extends Event {
                     System.out.printf("[%.0fs] %s -> CONSOLIDATION (%d foreign bins to transfer)%n",
                             sim.getCurrentTime(), shipment.getId(), foreignPicks.size());
 
-                    for (RouterCaller.Pick pick : foreignPicks) {
+                    for (RouterDTOs.Pick pick : foreignPicks) {
                         Bin bin = sim.getBin(pick.binId);
                         if (bin == null) {
                             System.err.println("Foreign pick references unknown bin: " + pick.binId);
@@ -184,9 +184,9 @@ public class ShipmentRouterTriggered extends Event {
      * Returns picks whose bin currently lives in a grid other than the
      * shipment's packingGrid. These need a conveyor transfer before picking.
      */
-    private List<RouterCaller.Pick> findForeignPicks(Simulation sim,
-                                                     RouterCaller.Assignment assignment) {
-        List<RouterCaller.Pick> foreign = new ArrayList<>();
+    private List<RouterDTOs.Pick> findForeignPicks(Simulation sim,
+                                                     RouterDTOs.Assignment assignment) {
+        List<RouterDTOs.Pick> foreign = new ArrayList<>();
         if (assignment.picks == null) return foreign;
         for (RouterDTOs.Pick pick : assignment.picks) {
             Bin bin = sim.getBin(pick.binId);
