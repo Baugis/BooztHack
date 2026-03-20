@@ -1,1 +1,13 @@
+# Java build files
 *.class
+
+# Maven
+target/
+
+# Gradle
+build/
+
+# IDE
+.idea/
+*.iml
+.vscode/
