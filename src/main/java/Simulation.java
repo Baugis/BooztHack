@@ -16,6 +16,7 @@ public class Simulation {
     private final Instant epochInstant;
 
     // All simulation state
+    private final Map<String, Port>     ports;
     private final Map<String, Grid>     grids;
     private final Map<String, Shipment> shipments;
 
@@ -32,6 +33,7 @@ public class Simulation {
         this.currentTime   = 0;
         this.endTime       = endTime;
         this.epochInstant  = epochInstant;
+        this.ports         = new HashMap<>();
         this.grids         = new HashMap<>();
         this.shipments     = new HashMap<>();
     }
@@ -85,12 +87,15 @@ public class Simulation {
     // State accessors
     // -------------------------------------------------------------------------
 
+    public Port     getPort(String id)     { return ports.get(id); }
     public Grid     getGrid(String id)     { return grids.get(id); }
     public Shipment getShipment(String id) { return shipments.get(id); }
 
+    public void addPort(Port port)         { ports.put(port.getId(), port); }
     public void addGrid(Grid grid)         { grids.put(grid.getId(), grid); }
     public void addShipment(Shipment s)    { shipments.put(s.getId(), s); }
 
+    public Collection<Port>     getAllPorts()     { return ports.values(); }
     public Collection<Grid>     getAllGrids()     { return grids.values(); }
     public Collection<Shipment> getAllShipments() { return shipments.values(); }
 
@@ -135,7 +140,7 @@ public class Simulation {
                 RouterDTOs.ShiftDto sDto = new RouterDTOs.ShiftDto();
                 sDto.startAt = shift.getStartAt();
                 sDto.endAt   = shift.getEndAt();
-                for (Port port : grid.getAllPorts()) {
+                for (Port port : getAllPorts()) {
                     RouterDTOs.PortConfigDto pDto = new RouterDTOs.PortConfigDto();
                     pDto.portId = port.getPortId();
                     pDto.handlingFlags = new ArrayList<>(port.getHandlingFlags());
