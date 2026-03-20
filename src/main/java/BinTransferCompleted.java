@@ -90,7 +90,7 @@ public class BinTransferCompleted extends Event {
     }
 
     private void requestFirstBin(Simulation sim, Port port, Shipment shipment) {
-        RouterCaller.Pick pick = shipment.nextPick();
+        RouterDTOs.Pick pick = shipment.nextPick();
         if (pick == null) return;
         Bin bin = sim.getBin(pick.binId);
         if (bin == null) return;

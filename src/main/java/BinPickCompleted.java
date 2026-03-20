@@ -77,7 +77,7 @@ public class BinPickCompleted extends Event {
         // --- 4. Check if there are more picks to do ---
         if (!shipment.allPicksDone()) {
             // Request the next bin in the pick list
-            RouterCaller.Pick nextPick = shipment.nextPick();
+            RouterDTOs.Pick nextPick = shipment.nextPick();
             requestNextBin(sim, port, shipment, nextPick);
             return;
         }
