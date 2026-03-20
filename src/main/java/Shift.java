@@ -14,8 +14,21 @@ public class Shift {
     @SerializedName("portConfig")
     public List<PortConfig> portConfig = new ArrayList<>();
 
+    @SerializedName("breaks")
+    public List<BreakWindow> breaks = new ArrayList<>();
+
     public String getStartAt() { return startAt; }
     public String getEndAt()   { return endAt; }
+    public List<BreakWindow> getBreaks() { return breaks != null ? breaks : new ArrayList<>(); }
+
+    /** A scheduled break window within a shift. */
+    public static class BreakWindow {
+        @SerializedName("start")
+        public String startAt;
+
+        @SerializedName("end")
+        public String endAt;
+    }
 
     // Inner class for the port configurations
     public static class PortConfig {
