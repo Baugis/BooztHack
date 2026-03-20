@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 
 public class Shift {
-    
+
     @SerializedName("start")
     public String startAt;
 
@@ -14,11 +14,14 @@ public class Shift {
     @SerializedName("portConfig")
     public List<PortConfig> portConfig = new ArrayList<>();
 
+    public String getStartAt() { return startAt; }
+    public String getEndAt()   { return endAt; }
+
     // Inner class for the port configurations
     public static class PortConfig {
         @SerializedName("id")
         public String portId;
-        
+
         @SerializedName("handlingFlags")
         public List<String> handlingFlags = new ArrayList<>();
     }
