@@ -9,6 +9,7 @@ public class Simulation {
 
     // All simulation state lives here - grids, bins, shipments, ports
     // Events reach into this to read and modify state
+    private final Map<String, Port> ports;
     private final Map<String, Grid> grids;
     private final Map<String, Shipment> shipments;
 
@@ -16,6 +17,7 @@ public class Simulation {
         this.eventQueue = new EventQueue();
         this.currentTime = 0;
         this.endTime = endTime;
+        this.ports = new HashMap<>();
         this.grids = new HashMap<>();
         this.shipments = new HashMap<>();
     }
@@ -49,6 +51,8 @@ public class Simulation {
     public double getCurrentTime() { return currentTime; }
 
     // State accessors for events to use
+    
+    public Port getPort(String id) { return ports.get(id); }
     public Grid getGrid(String id) { return grids.get(id); }
     public Shipment getShipment(String id) { return shipments.get(id); }
     public void addGrid(Grid grid) { grids.put(grid.getId(), grid); }

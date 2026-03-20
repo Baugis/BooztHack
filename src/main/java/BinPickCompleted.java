@@ -56,8 +56,12 @@ public class BinPickCompleted extends Event {
             return;
         }
 
-        //Grid grid = sim.getGrid(shipment.getPackingGrid()); -> lyg ir ankstesnis grid turetu tikti
-        Port port = grid != null ? port.getPort(portId) : null;
+        Port port = sim.getPort(portId);
+        if (port == null) {
+            System.err.println("PortPickCompleted: unknown port " + portId);
+            return;
+        }
+
 
         // --- 1. Deduct the picked items from the bin's stock ---
         bin.deductStock(ean, qty);
