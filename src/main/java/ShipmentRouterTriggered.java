@@ -39,7 +39,7 @@ public class ShipmentRouterTriggered extends Event {
             List<Shipment> requeued = new ArrayList<>();
             Shipment s;
             while ((s = grid.dequeueShipment()) != null) {
-                if (s.getStatus() == Shipment.Status.ROUTED) {
+                if (s.getStatus() == Shipment.ShipmentStatus.ROUTED) {
                     s.rollbackToReceived();
                 }
                 // If somehow still routed after rollback, just keep it
@@ -58,7 +58,7 @@ public class ShipmentRouterTriggered extends Event {
         // Collect all RECEIVED shipments for the backlog
         state.shipmentsBacklog = new ArrayList<>();
         for (Shipment shipment : sim.getAllShipments()) {
-            if (shipment.getStatus() == Shipment.Status.RECEIVED) {
+            if (shipment.getStatus() == Shipment.ShipmentStatus.RECEIVED) {
                 RouterCaller.ShipmentDto dto = new RouterCaller.ShipmentDto();
                 dto.id = shipment.getId();
                 dto.createdAt = shipment.getCreatedAt();

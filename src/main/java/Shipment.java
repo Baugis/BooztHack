@@ -63,6 +63,7 @@ public class Shipment implements Serializable{
         this.shippedTime = simTime; 
     }
 
+
     // Getters
     public String getId() { return id; }
     public ShipmentStatus getStatus() { return status; }
@@ -70,10 +71,14 @@ public class Shipment implements Serializable{
     public double getReceivedTime() { return receivedTime; }
     public double getPackedAt() { return packedTime; }
     public double getShippedAt() { return shippedTime; }
-    public String getCreatedAt() {  return createdAt}
+    public String getCreatedAt() {  return shipmentDate; }
 
     public Set<String> getHandlingFlags() { return handlingFlags; }
     public String getSortingDirection() { return sortingDirection; }
+
+    public Map<String, Integer> getItems() { return items; }
+    // public String getPackingGrid() { return packingGrid; }           // cia man rodos truksta tos Router klases
+    // public int getPriority() { return priority; }
 
     // Setters
     protected void setReceivedAt(double simTime){ this.receivedTime = simTime;}
