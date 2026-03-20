@@ -22,17 +22,19 @@ public class BinTransferCompleted extends Event {
     private final String destinationGridId;
     private final String shipmentId; // which shipment triggered this transfer (may be null)
     private final double transferDuration; // for logging
+    private final String gridId;
 
     public BinTransferCompleted(double simTime, long sequenceNumber,
                                 String binId,
                                 String sourceGridId, String destinationGridId,
-                                String shipmentId, double transferDuration) {
+                                String shipmentId, double transferDuration, String gridId) {
         super(simTime, sequenceNumber);
         this.binId             = binId;
         this.sourceGridId      = sourceGridId;
         this.destinationGridId = destinationGridId;
         this.shipmentId        = shipmentId;
         this.transferDuration  = transferDuration;
+        this.gridId = gridId;
     }
 
     @Override
@@ -40,9 +42,16 @@ public class BinTransferCompleted extends Event {
         System.out.printf("[%.0fs] BinTransferCompleted: bin=%s, %s -> %s (took %.0fs)%n",
                 sim.getCurrentTime(), binId, sourceGridId, destinationGridId, transferDuration);
 
-        Bin bin = sim.getBin(binId);
+        
+        Grid grid = sim.getGrid(gridId);
+        if (grid == null) {
+            System.err.println("BinArrivedAtPort: unknown grid " + gridId);
+            return;
+        }
+
+        Bin bin = grid.getBin(binId);
         if (bin == null) {
-            System.err.println("BinTransferCompleted: unknown bin " + binId);
+            System.err.println("BinArrivedAtPort: unknown bin " + binId);
             return;
         }
 
