@@ -99,7 +99,7 @@ public class BinTransferCompleted extends Event {
         sim.schedule(new BinArrivedAtPort(
                 sim.getCurrentTime() + delay,
                 sim.nextSequence(),
-                port.getPortId(),
+                port.getId(),
                 shipment.getId(),
                 pick.binId, pick.ean, pick.qty,
                 shipment.getPackingGrid()
