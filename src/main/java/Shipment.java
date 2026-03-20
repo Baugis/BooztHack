@@ -45,6 +45,10 @@ public class Shipment implements Serializable {
     // Router-assigned priority (lower number = higher priority).
     private transient int priority = 0;
 
+    // Number of bin transfers still in-flight for consolidation (section 4.4).
+    // Set by applyRouterAssignment when bins span multiple grids.
+    private transient int pendingTransfers = 0;
+
     // -------------------------------------------------------------------------
     // Constructors
     // -------------------------------------------------------------------------
@@ -85,6 +89,27 @@ public class Shipment implements Serializable {
         this.shippedTime = simTime;
     }
 
+    public void markAsConsolidation() {
+        this.status = ShipmentStatus.CONSOLIDATION;
+    }
+
+    public void markAsReady() {
+        this.status = ShipmentStatus.READY;
+    }
+
+    /** Sets number of pending bin transfers needed before this shipment becomes READY. */
+    public void setPendingTransfers(int count) {
+        this.pendingTransfers = count;
+    }
+
+    public void decrementPendingTransfers() {
+        if (pendingTransfers > 0) pendingTransfers--;
+    }
+
+    public boolean allTransfersDone() {
+        return pendingTransfers <= 0;
+    }
+
     /**
      * Rolls the shipment back to RECEIVED so the router can re-assign it.
      * Called by ShipmentRouterTriggered before each router run for any
@@ -95,7 +120,8 @@ public class Shipment implements Serializable {
         this.packingGrid = null;
         this.picks       = new ArrayList<>();
         this.pickIndex   = 0;
-        this.priority    = 0;
+        this.priority         = 0;
+        this.pendingTransfers = 0;
     }
 
     // -------------------------------------------------------------------------

@@ -1,55 +1,104 @@
 import java.util.*;
 
 public class Grid {
-    
+
     private final String gridId;
-    //Map leidzia paimti bet koki bina pagal jo ID O(1) laiku
-    //paima String ID ir grazina Bin objekta kuriame laikomi daiktai
     private final Map<String, Bin> bins;
-
-    //Saugo pamainu tvarkarasti objekta nuo jo priklauso kada operuos tam tikri Portai ant grido
     private final List<Shift> shifts;
-
-    //gridQueue saugo Shipmentus kurie buvo assigninti i sita grida bet dar nebuvo
-    //assigninti i tam tikra porta. Kaip laukimas eileje
     private final Queue<Shipment> gridQueue;
 
-    public Grid(String gridID, List<Shift> shifts){
-        this.gridId = gridID; 
+    /** All ports belonging to this grid, keyed by portId. */
+    private final Map<String, Port> ports;
+
+    public Grid(String gridID, List<Shift> shifts) {
+        this.gridId = gridID;
         this.shifts = new ArrayList<>(shifts);
         this.bins = new HashMap<>();
         this.gridQueue = new LinkedList<>();
+        this.ports = new LinkedHashMap<>();
     }
 
-    //BIN MANAGEMENT
+    // -------------------------------------------------------------------------
+    // Bin management
+    // -------------------------------------------------------------------------
+
     public void addBin(Bin bin) {
         bins.put(bin.getBinId(), bin);
     }
 
-    //sugrazina Bina pagal jo ID
     public Bin getBin(String binId) {
         return bins.get(binId);
     }
 
-    // Returns all bins in this grid.
-    // Used by the router when it needs to know what stock is available here.
-    // 'unmodifiableCollection' means the caller can read the collection
-    // but cannot add/remove bins from it directly - they must go through
-    // addBin() so we stay in control of our internal state.
     public Collection<Bin> getAllBins() {
         return Collections.unmodifiableCollection(bins.values());
     }
 
-    // Prideda Shipmenta i eiles gala
-    // kviecia jei:
-    // 1. jei shipmentas paruostas procesinimui bet joks portas nera laisvas
-    // 2. portas uzsidare viduryje shifto pvz pertrauka ir vel enqueuina to porto shipmentus
+    /**
+     * Removes a bin from this grid (needed after an inter-grid transfer).
+     */
+    public void removeBin(String binId) {
+        bins.remove(binId);
+    }
+
+    // -------------------------------------------------------------------------
+    // Port management
+    // -------------------------------------------------------------------------
+
+    public void addPort(Port port) {
+        ports.put(port.getPortId(), port);
+    }
+
+    public Port getPort(String portId) {
+        return ports.get(portId);
+    }
+
+    public Collection<Port> getAllPorts() {
+        return Collections.unmodifiableCollection(ports.values());
+    }
+
+    /**
+     * Selects the best available port for a shipment.
+     *
+     * "Best" is defined as:
+     *   1. Port must be IDLE or BUSY (not CLOSED / PENDING_CLOSE).
+     *   2. Port must be compatible with the shipment's handling flags.
+     *   3. Port must have queue capacity remaining.
+     *   4. Among all eligible ports, pick the one with the shortest current queue.
+     *
+     * Returns null if no port can accept the shipment right now.
+     */
+    public Port findBestPortFor(Shipment shipment) {
+        Port best = null;
+        int bestQueueSize = Integer.MAX_VALUE;
+
+        for (Port port : ports.values()) {
+            Port.Status status = port.getStatus();
+            if (status == Port.Status.CLOSED || status == Port.Status.PENDING_CLOSE) {
+                continue;
+            }
+            if (!port.isCompatibleWith(shipment)) {
+                continue;
+            }
+            if (!port.hasQueueCapacity()) {
+                continue;
+            }
+            if (port.getQueueSize() < bestQueueSize) {
+                bestQueueSize = port.getQueueSize();
+                best = port;
+            }
+        }
+        return best;
+    }
+
+    // -------------------------------------------------------------------------
+    // Grid shipment queue
+    // -------------------------------------------------------------------------
+
     public void enqueueShipment(Shipment shipment) {
         gridQueue.add(shipment);
     }
 
-    //Isima shipmenta is gridQueue eiles priekio
-    //Kvieciamas kai portas atsilaisvina
     public Shipment dequeueShipment() {
         return gridQueue.poll();
     }
@@ -58,11 +107,14 @@ public class Grid {
         return !gridQueue.isEmpty();
     }
 
-    //Grazina read only queue perziura
     public Queue<Shipment> getGridQueue() {
-        // return Collections.unmodifiableQueue(gridQueue);  SITAS NETIKO PASIULE PAKEISTI SITU
-        return new LinkedList<>(gridQueue); // Returns a safe copy
+        return new LinkedList<>(gridQueue);
     }
-    public String getId() {return gridId;}
-    public List<Shift> getShifts() {return Collections.unmodifiableList(shifts);}
+
+    // -------------------------------------------------------------------------
+    // Accessors
+    // -------------------------------------------------------------------------
+
+    public String getId()            { return gridId; }
+    public List<Shift> getShifts()   { return Collections.unmodifiableList(shifts); }
 }
