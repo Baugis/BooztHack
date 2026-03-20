@@ -37,10 +37,10 @@ public class ShipmentRouterTriggered extends Event {
         // (they haven't been picked up by a port yet, so re-submit them)
         for (Grid grid : sim.getAllGrids()) {
             List<Shipment> requeued = new ArrayList<>();
-            Shipment s;
-            while ((s = grid.dequeueShipment()) != null) {
-                if (s.getStatus() == Shipment.Status.ROUTED) {
-                    s.rollbackToReceived();
+            Shipment shipment;
+            while ((shipment = grid.dequeueShipment()) != null) {
+                if (shipment.getStatus() == Shipment.Status.ROUTED) {
+                    shipment.rollbackToReceived();
                 }
                 // If somehow still routed after rollback, just keep it
                 // (shouldn't happen, but be safe)

@@ -20,7 +20,7 @@ public class BinTransferCompleted extends Event {
     private final String binId;
     private final String sourceGridId;
     private final String destinationGridId;
-    private final String shipmentId; // which shipment triggered this transfer (may be null)
+    private final String shipmentId; // which shipment triggered this transfer (may be null) / velesniems lygiams reikes
     private final double transferDuration; // for logging
     private final String gridId;
 
