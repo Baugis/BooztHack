@@ -5,36 +5,30 @@
  * The bin has physically moved from a source grid to a destination grid.
  *
  * After this event:
- * - The bin's gridId is updated to the destination
- * - The bin is marked AVAILABLE again
- * - If the bin's arrival completes all needed transfers for a shipment,
- *   that shipment transitions from CONSOLIDATION -> READY and can be
- *   assigned to a port.
- *
- * NOTE: This event is NOT needed for Level 1-7 (single grid or no transfers).
- * It's included here for completeness and will be fully activated at Level 8.
- * For now it just moves the bin and logs the event.
+ *   - The bin is removed from the source grid and added to the destination grid.
+ *   - The bin is marked AVAILABLE.
+ *   - The shipment's pending-transfer count is decremented.
+ *   - If all transfers for the shipment are done, it transitions
+ *     CONSOLIDATION -> READY and is assigned to a port.
  */
 public class BinTransferCompleted extends Event {
 
     private final String binId;
     private final String sourceGridId;
     private final String destinationGridId;
-    private final String shipmentId; // which shipment triggered this transfer (may be null) / velesniems lygiams reikes
-    private final double transferDuration; // for logging
-    private final String gridId;
+    private final String shipmentId;
+    private final double transferDuration;
 
     public BinTransferCompleted(double simTime, long sequenceNumber,
                                 String binId,
                                 String sourceGridId, String destinationGridId,
-                                String shipmentId, double transferDuration, String gridId) {
+                                String shipmentId, double transferDuration) {
         super(simTime, sequenceNumber);
         this.binId             = binId;
         this.sourceGridId      = sourceGridId;
         this.destinationGridId = destinationGridId;
         this.shipmentId        = shipmentId;
         this.transferDuration  = transferDuration;
-        this.gridId = gridId;
     }
 
     @Override
@@ -42,36 +36,73 @@ public class BinTransferCompleted extends Event {
         System.out.printf("[%.0fs] BinTransferCompleted: bin=%s, %s -> %s (took %.0fs)%n",
                 sim.getCurrentTime(), binId, sourceGridId, destinationGridId, transferDuration);
 
-        
-        Grid grid = sim.getGrid(gridId);
-        if (grid == null) {
-            System.err.println("BinArrivedAtPort: unknown grid " + gridId);
+        Grid sourceGrid = sim.getGrid(sourceGridId);
+        Grid destGrid   = sim.getGrid(destinationGridId);
+
+        if (sourceGrid == null || destGrid == null) {
+            System.err.printf("BinTransferCompleted: unknown grid(s) src=%s dst=%s%n",
+                    sourceGridId, destinationGridId);
             return;
         }
 
-        Bin bin = grid.getBin(binId);
+        Bin bin = sourceGrid.getBin(binId);
         if (bin == null) {
-            System.err.println("BinArrivedAtPort: unknown bin " + binId);
+            System.err.println("BinTransferCompleted: unknown bin " + binId);
             return;
         }
 
         // Move the bin to its new grid
-        Grid sourceGrid = sim.getGrid(sourceGridId);
-        Grid destGrid   = sim.getGrid(destinationGridId);
+        sourceGrid.removeBin(binId);
+        bin.setGridId(destinationGridId);
+        destGrid.addBin(bin);
+        bin.markAvailable();
 
-        if (sourceGrid != null) {
-            // Note: Grid doesn't expose removeBin() yet — add it when Level 8 is built
-            // sourceGrid.removeBin(binId);
+        // Notify the shipment that one of its transfers is complete
+        if (shipmentId != null) {
+            Shipment shipment = sim.getShipment(shipmentId);
+            if (shipment != null) {
+                shipment.decrementPendingTransfers();
+
+                if (shipment.allTransfersDone()
+                        && shipment.getStatus() == Shipment.ShipmentStatus.CONSOLIDATION) {
+
+                    // All bins have arrived at the destination grid — shipment is READY
+                    shipment.markAsReady();
+                    System.out.printf("[%.0fs] Shipment %s READY (all transfers done)%n",
+                            sim.getCurrentTime(), shipmentId);
+
+                    // Try to assign to a port in the destination grid
+                    Port port = destGrid.findBestPortFor(shipment);
+                    if (port != null) {
+                        port.enqueue(shipment);
+                        if (port.getStatus() == Port.Status.IDLE) {
+                            Shipment started = port.startNextShipment();
+                            if (started != null) {
+                                requestFirstBin(sim, port, started);
+                            }
+                        }
+                    } else {
+                        destGrid.enqueueShipment(shipment);
+                    }
+                }
+            }
         }
+    }
 
-        if (destGrid != null) {
-            bin.setGridId(destinationGridId);
-            destGrid.addBin(bin);
-            bin.markAvailable();
-        }
-
-        // TODO (Level 8): check if this bin's arrival completes all transfers
-        // for the associated shipment. If so, transition shipment CONSOLIDATION -> READY
-        // and try to assign it to a port.
+    private void requestFirstBin(Simulation sim, Port port, Shipment shipment) {
+        RouterCaller.Pick pick = shipment.nextPick();
+        if (pick == null) return;
+        Bin bin = sim.getBin(pick.binId);
+        if (bin == null) return;
+        bin.markOutside();
+        double delay = sim.getDeliveryDelay(shipment.getPackingGrid());
+        sim.schedule(new BinArrivedAtPort(
+                sim.getCurrentTime() + delay,
+                sim.nextSequence(),
+                port.getPortId(),
+                shipment.getId(),
+                pick.binId, pick.ean, pick.qty,
+                shipment.getPackingGrid()
+        ));
     }
 }

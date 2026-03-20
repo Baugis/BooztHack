@@ -35,7 +35,7 @@ public class Main {
 
             // 1. GENERATE THE LIVE JSON
             // We get the date of the first shipment to use as our "now" time
-            String currentSimTime = shipments.get(0).shipmentDate; 
+            String currentSimTime = shipments.get(0).createdAt; 
 
             RouterStateConverter converter = new RouterStateConverter();
             String liveStateJson = converter.generateRouterJson(shipments, bins, grids, currentSimTime);
