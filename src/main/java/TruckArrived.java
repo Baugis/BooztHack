@@ -29,9 +29,9 @@ public class TruckArrived extends Event {
 
         for (Shipment shipment : sim.getAllShipments()) {
             if (shipment.getStatus() == Shipment.ShipmentStatus.PACKED
-                    && sortingDirection.equals(shipment.getSortingDirection())) {
-                shipment.markAsShipped(sim.getCurrentTime());
-                shipped.add(shipment);
+                && sortingDirection.equals(shipment.getSortingDirection())) {
+                    shipment.markAsShipped(sim.getCurrentTime());
+                    shipped.add(shipment);
             }
         }
 

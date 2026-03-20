@@ -20,7 +20,7 @@ private static class ShipmentLoadDto {
         String id;
         Map<String, Integer> items;
         
-        @SerializedName("created_at") // Ensure this matches your JSON!
+        @SerializedName("created_at") 
         String shipmentDate;
         
         @SerializedName("handling_flags")

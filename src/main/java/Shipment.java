@@ -19,7 +19,7 @@ public class Shipment implements Serializable{
         CONSOLIDATION,
         READY,
         PICKING,
-        PACKED,         // Reikia skaiciuoti Dwell time - laika kol pakeis busena i shipped
+        PACKED,         
         SHIPPED
     }      
     
@@ -53,7 +53,7 @@ public class Shipment implements Serializable{
         this.status = ShipmentStatus.PICKING;
     }
 
-    public void markAsPacked(long simTime) {
+    public void markAsPacked(double simTime) {
         this.status = ShipmentStatus.PACKED; 
         this.packedTime = simTime; 
     }
@@ -66,10 +66,15 @@ public class Shipment implements Serializable{
     // Getters
     public String getId() { return id; }
     public ShipmentStatus getStatus() { return status; }
+
     public double getReceivedTime() { return receivedTime; }
-    public double getPackedTime() { return packedTime; }
-    public double getShippedTime() { return shippedTime; }
+    public double getPackedAt() { return packedTime; }
+    public double getShippedAt() { return shippedTime; }
+    public String getCreatedAt() {  return createdAt}
+
     public Set<String> getHandlingFlags() { return handlingFlags; }
     public String getSortingDirection() { return sortingDirection; }
-    
+
+    // Setters
+    protected void setReceivedAt(double simTime){ this.receivedTime = simTime;}
 }

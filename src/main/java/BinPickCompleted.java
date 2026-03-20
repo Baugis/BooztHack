@@ -77,7 +77,7 @@ public class BinPickCompleted extends Event {
         }
 
         // --- 5. All picks done — shipment is now PACKED ---
-        shipment.markPacked(sim.getCurrentTime());
+        shipment.markAsPacked(sim.getCurrentTime());
         System.out.printf("[%.0fs] PACKED: shipment=%s (pack duration=%.1fs)%n",
                 sim.getCurrentTime(), shipmentId, pickDuration);
 
@@ -93,7 +93,7 @@ public class BinPickCompleted extends Event {
             }
         }
     }
-    
+
     /**
      * Schedules a BinArrivedAtPort for the next pick in this shipment.
      * Marks the bin OUTSIDE (it's now en route to the port).
