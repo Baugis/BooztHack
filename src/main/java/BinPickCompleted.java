@@ -1,6 +1,3 @@
-
-import java.beans.SimpleBeanInfo;
-
 /**
  * EVENT: BinPickCompleted
  *
