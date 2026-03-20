@@ -1,4 +1,3 @@
-
 /**
  * EVENT: BinPickCompleted
  *
@@ -56,12 +55,8 @@ public class BinPickCompleted extends Event {
             return;
         }
 
-        Port port = sim.getPort(portId);
-        if (port == null) {
-            System.err.println("PortPickCompleted: unknown port " + portId);
-            return;
-        }
-
+        //Grid grid = sim.getGrid(shipment.getPackingGrid()); -> the grid found above is correct
+        Port port = grid.getPort(portId);
 
         // --- 1. Deduct the picked items from the bin's stock ---
         bin.deductStock(ean, qty);
@@ -123,7 +118,8 @@ public class BinPickCompleted extends Event {
                 shipmentId,
                 pick.binId,
                 pick.ean,
-                pick.qty
+                pick.qty,
+                shipment.getPackingGrid()  // gridId — needed so BinArrivedAtPort can find the bin
         ));
 
         System.out.printf("[%.0fs] Next bin requested: %s (arrives in %.1fs)%n",
