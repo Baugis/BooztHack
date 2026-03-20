@@ -11,9 +11,9 @@ import java.util.HashSet;
 import java.util.HashMap;
 
 public class DataLoader {
-    private final String shipmentPath = "Data/sample-data/level1/shipments.json";
-    private final String gridPath = "Data/sample-data/level1/grids.json";
-    private final String binPath = "Data/sample-data/level1/bins.json"; 
+    private final String shipmentPath = "Data/sample-data/level3/shipments.json";
+    private final String gridPath = "Data/sample-data/level3/grids.json";
+    private final String binPath = "Data/sample-data/level3/bins.json"; 
     private final Gson gson = new Gson();
 
     // --- 1. Load Shipments ---
@@ -29,10 +29,10 @@ public class DataLoader {
         @SerializedName("shipmentDate")
         String shipmentDate;
 
-        @SerializedName("handling_flags")
+        @SerializedName("handlingFlags")
         Set<String> handlingFlags;
 
-        @SerializedName("sorting_direction")
+        @SerializedName("sortingDirection")
         String sortingDirection;
     }
 

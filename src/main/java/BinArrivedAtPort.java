@@ -7,14 +7,10 @@
  * Schedules a BinPickCompleted event after the appropriate pick duration
  * (Standard: 140 units/hour, Fragile: 70 units/hour).
  */
-
 public class BinArrivedAtPort extends Event {
 
-    // From spec section 9.2
     private static final double STANDARD_UNITS_PER_SECOND = 140.0 / 3600.0;
     private static final double FRAGILE_UNITS_PER_SECOND  =  70.0 / 3600.0;
-
-    // Randomness bounds from spec (0.8 to 1.2)
     private static final double RANDOM_MIN = 0.8;
     private static final double RANDOM_MAX = 1.2;
 
@@ -34,7 +30,7 @@ public class BinArrivedAtPort extends Event {
         this.binId      = binId;
         this.ean        = ean;
         this.qty        = qty;
-        this.gridId = gridId;
+        this.gridId     = gridId;
     }
 
     @Override
@@ -45,6 +41,14 @@ public class BinArrivedAtPort extends Event {
         Shipment shipment = sim.getShipment(shipmentId);
         if (shipment == null) {
             System.err.println("BinArrivedAtPort: unknown shipment " + shipmentId);
+            return;
+        }
+
+        // Jei siunta jau pakuota — ignoruoti
+        if (shipment.getStatus() == Shipment.ShipmentStatus.PACKED ||
+            shipment.getStatus() == Shipment.ShipmentStatus.SHIPPED) {
+            System.out.printf("[%.0fs] BinArrivedAtPort: ignoruojama — shipment %s jau %s%n",
+                sim.getCurrentTime(), shipmentId, shipment.getStatus());
             return;
         }
 
@@ -59,19 +63,28 @@ public class BinArrivedAtPort extends Event {
             System.err.println("BinArrivedAtPort: unknown bin " + binId);
             return;
         }
-        
-        // Reserve the bin for this port now that it's physically here
-        bin.reserve(portId);
 
-        // Calculate how long picking this quantity will take
+        // Bandyti rezervuoti biną — jei nepavyksta, laukti eilėje
+        if (bin.getStatus() == Bin.Status.RESERVED && portId.equals(bin.getReservedByPortId())) {
+            // Binas jau rezervuotas mums — tiesiog testi picking
+        } else {
+            boolean reserved = bin.reserve(portId);
+            if (!reserved) {
+                System.out.printf("[%.0fs] Bin %s already reserved, port %s added to waiting list%n",
+                    sim.getCurrentTime(), binId, portId);
+                return;
+            }
+        }
+
+
+
+
+        // Apskaičiuoti picking trukmę
         boolean isFragile = shipment.getHandlingFlags().contains("fragile");
         double unitsPerSecond = isFragile ? FRAGILE_UNITS_PER_SECOND : STANDARD_UNITS_PER_SECOND;
-
-        // Base duration in seconds, then apply randomness factor
         double baseDuration = qty / unitsPerSecond;
         double randomFactor = RANDOM_MIN + Math.random() * (RANDOM_MAX - RANDOM_MIN);
         double pickDuration = baseDuration * randomFactor;
-
         double completionTime = sim.getCurrentTime() + pickDuration;
 
         sim.schedule(new BinPickCompleted(

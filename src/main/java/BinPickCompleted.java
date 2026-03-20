@@ -1,13 +1,5 @@
 /**
  * EVENT: BinPickCompleted
- *
- * Fires when a port finishes picking the required items from a bin.
- *
- * After this event:
- * - Stock is deducted from the bin
- * - The bin is returned to AVAILABLE
- * - If the shipment has more picks: requests the next bin (schedules BinArrivedAtPort)
- * - If the shipment is fully picked: marks it PACKED, frees the port for the next shipment
  */
 public class BinPickCompleted extends Event {
 
@@ -16,7 +8,7 @@ public class BinPickCompleted extends Event {
     private final String binId;
     private final String ean;
     private final int qty;
-    private final double pickDuration; // for logging/metrics
+    private final double pickDuration;
     private final String gridId;
 
     public BinPickCompleted(double simTime, long sequenceNumber,
@@ -29,7 +21,7 @@ public class BinPickCompleted extends Event {
         this.ean          = ean;
         this.qty          = qty;
         this.pickDuration = pickDuration;
-        this.gridId = gridId;
+        this.gridId       = gridId;
     }
 
     @Override
@@ -45,7 +37,7 @@ public class BinPickCompleted extends Event {
 
         Grid grid = sim.getGrid(gridId);
         if (grid == null) {
-            System.err.println("BinArrivedAtPort: unknown grid " + gridId);
+            System.err.println("BinPickCompleted: unknown grid " + gridId);
             return;
         }
 
@@ -61,50 +53,68 @@ public class BinPickCompleted extends Event {
             if (port != null) break;
         }
         if (port == null) {
-            System.err.println("PortPickCompleted: unknown port " + portId);
+            System.err.println("BinPickCompleted: unknown port " + portId);
             return;
         }
 
-
-        // --- 1. Deduct the picked items from the bin's stock ---
+        // --- 1. Deduct stock ---
         bin.deductStock(ean, qty);
 
-        // --- 2. Return the bin to the grid ---
+        // --- 2. Atlaisvinti biną ir pranešti laukiančiam portui (jei yra) ---
         bin.markAvailable();
+        if (bin.hasWaiting()) {
+            String nextPortId = bin.pollNextWaiting();
+            bin.reserve(nextPortId);
+            Port nextPort = null;
+            for (Grid g : sim.getAllGrids()) {
+                nextPort = g.getPort(nextPortId);
+                if (nextPort != null) break;
+            }
+            if (nextPort != null && nextPort.getActiveShipment() != null) {
+                Shipment waiting = nextPort.getActiveShipment();
+                RouterDTOs.Pick pick = waiting.nextPick();
+                if (pick != null) {
+                    double delay = sim.getDeliveryDelay(waiting.getPackingGrid());
+                    sim.schedule(new BinArrivedAtPort(
+                        sim.getCurrentTime() + delay,
+                        sim.nextSequence(),
+                        nextPortId,
+                        waiting.getId(),
+                        bin.getBinId(),
+                        pick.ean,
+                        pick.qty,
+                        waiting.getPackingGrid()
+                    ));
+                    System.out.printf("[%.0fs] Bin %s perduotas laukiančiam port %s%n",
+                        sim.getCurrentTime(), bin.getBinId(), nextPortId);
+                }
+            }
+        }
 
-        // --- 3. Advance the shipment's pick progress ---
+        // --- 3. Advance pick progress ---
         shipment.completeCurrentPick();
 
-        // --- 4. Check if there are more picks to do ---
+        // --- 4. More picks? ---
         if (!shipment.allPicksDone()) {
-            // Request the next bin in the pick list
             RouterDTOs.Pick nextPick = shipment.nextPick();
             requestNextBin(sim, port, shipment, nextPick);
             return;
         }
 
-        // --- 5. All picks done — shipment is now PACKED ---
+        // --- 5. All picks done — PACKED ---
         shipment.markAsPacked(sim.getCurrentTime());
         System.out.printf("[%.0fs] PACKED: shipment=%s (pack duration=%.1fs)%n",
                 sim.getCurrentTime(), shipmentId, pickDuration);
 
-        // --- 6. Free the port and start the next shipment if queued ---
-        if (port != null) {
-            Shipment nextShipment = port.finishCurrentShipment();
-            if (nextShipment != null) {
-                // Port is already BUSY with the next shipment — request its first bin
-                requestNextBin(sim, port, nextShipment, nextShipment.nextPick());
-            } else {
-                // Port is now IDLE — check if the grid queue has something
-                tryAssignFromGridQueue(sim, grid, port);
-            }
+        // --- 6. Free port ---
+        Shipment nextShipment = port.finishCurrentShipment();
+        if (nextShipment != null) {
+            requestNextBin(sim, port, nextShipment, nextShipment.nextPick());
+        } else {
+            tryAssignFromGridQueue(sim, grid, port);
         }
     }
 
-    /**
-     * Schedules a BinArrivedAtPort for the next pick in this shipment.
-     * Marks the bin OUTSIDE (it's now en route to the port).
-     */
     private void requestNextBin(Simulation sim, Port port, Shipment shipment, RouterDTOs.Pick nextPick) {
         if (nextPick == null) return;
 
@@ -122,27 +132,21 @@ public class BinPickCompleted extends Event {
         sim.schedule(new BinArrivedAtPort(
                 arrivalTime,
                 sim.nextSequence(),
-                portId,
-                shipmentId,
+                port.getId(),
+                shipment.getId(),
                 nextPick.binId,
                 nextPick.ean,
                 nextPick.qty,
-                shipment.getPackingGrid()  // gridId — needed so BinArrivedAtPort can find the bin
+                shipment.getPackingGrid()
         ));
 
         System.out.printf("[%.0fs] Next bin requested: %s (arrives in %.1fs)%n",
                 sim.getCurrentTime(), nextPick.binId, deliveryDelay);
     }
 
-    /**
-     * When a port becomes IDLE after finishing a shipment, check if the
-     * grid-level queue has anything waiting that this port can handle.
-     */
     private void tryAssignFromGridQueue(Simulation sim, Grid grid, Port port) {
         if (grid == null) return;
 
-        // Peek through the grid queue to find the first compatible shipment
-        // For Level 1 this is simple — just grab the front of the queue
         Shipment next = grid.dequeueShipment();
         if (next == null) return;
 
@@ -152,10 +156,9 @@ public class BinPickCompleted extends Event {
             if (started != null) {
                 requestNextBin(sim, port, started, started.nextPick());
                 System.out.printf("[%.0fs] Port %s pulled %s from grid queue%n",
-                        sim.getCurrentTime(), portId, started.getId());
+                        sim.getCurrentTime(), port.getId(), started.getId());
             }
         } else {
-            // Can't handle it — put it back
             grid.enqueueShipment(next);
         }
     }
