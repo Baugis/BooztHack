@@ -78,6 +78,13 @@ public class Main {
         // -------------------------------------------------------------------------
         sim.scheduleAllShifts();
 
+        // Truck atvažiuoja 10:00 (36000s nuo vidurnakčio) REIKES PAKEIST KAD VEIKTU SU JSON FAILU
+        sim.schedule(new TruckArrived(
+            36000.0,
+            sim.nextSequence(),
+            "DEFAULT-DIR"
+        ));
+
         // -------------------------------------------------------------------------
         // 7. Set up the router caller
         //    Change the path to match your OS:
@@ -138,64 +145,59 @@ public class Main {
      * timing stats for packed/shipped shipments.
      */
     private static void printSummary(Simulation sim) {
-        int received     = 0;
-        int routed       = 0;
-        int consolidation = 0;
-        int ready        = 0;
-        int picking      = 0;
-        int packed       = 0;
-        int shipped      = 0;
+    int received      = 0;
+    int routed        = 0;
+    int consolidation = 0;
+    int ready         = 0;
+    int picking       = 0;
+    int packed        = 0;
+    int shipped       = 0;
 
-        double totalPackTime  = 0;
-        double totalDwellTime = 0;
-        int    dwellCount     = 0;
+    double totalPackTime  = 0;
+    double totalDwellTime = 0;
+    int    packCount      = 0;
+    int    dwellCount     = 0;
 
-        for (Shipment s : sim.getAllShipments()) {
-            switch (s.getStatus()) {
-                case RECEIVED      -> received++;
-                case ROUTED        -> routed++;
-                case CONSOLIDATION -> consolidation++;
-                case READY         -> ready++;
-                case PICKING       -> picking++;
-                case PACKED        -> {
-                    packed++;
-                    if (s.getPackedAt() > 0) {
-                        totalPackTime += s.getPackedAt() - s.getReceivedTime();
-                    }
+    for (Shipment s : sim.getAllShipments()) {
+        switch (s.getStatus()) {
+            case RECEIVED      -> received++;
+            case ROUTED        -> routed++;
+            case CONSOLIDATION -> consolidation++;
+            case READY         -> ready++;
+            case PICKING       -> picking++;
+            case PACKED -> {
+                packed++;
+                if (s.getPackedAt() > 0) {
+                    totalPackTime += s.getPackedAt() - s.getReceivedTime();
+                    packCount++;
                 }
-                case SHIPPED -> {
-                    shipped++;
-                    if (s.getShippedAt() > 0 && s.getPackedAt() > 0) {
-                        totalDwellTime += s.getShippedAt() - s.getPackedAt();
-                        dwellCount++;
-                    }
+            }
+            case SHIPPED -> {
+                shipped++;
+                if (s.getPackedAt() > 0) {
+                    totalPackTime += s.getPackedAt() - s.getReceivedTime();
+                    packCount++;
+                }
+                if (s.getShippedAt() > 0 && s.getPackedAt() > 0) {
+                    totalDwellTime += s.getShippedAt() - s.getPackedAt();
+                    dwellCount++;
                 }
             }
         }
+    }
 
-        int total = sim.getAllShipments().size();
-
-        System.out.println("┌─────────────────────────────────────┐");
-        System.out.println("│         SIMULATION SUMMARY          │");
-        System.out.println("├─────────────────────────────────────┤");
-        System.out.printf( "│  Total shipments     : %5d         │%n", total);
-        System.out.printf( "│  RECEIVED (unrouted) : %5d         │%n", received);
-        System.out.printf( "│  ROUTED              : %5d         │%n", routed);
-        System.out.printf( "│  CONSOLIDATION       : %5d         │%n", consolidation);
-        System.out.printf( "│  READY               : %5d         │%n", ready);
-        System.out.printf( "│  PICKING             : %5d         │%n", picking);
-        System.out.printf( "│  PACKED              : %5d         │%n", packed);
-        System.out.printf( "│  SHIPPED             : %5d         │%n", shipped);
-        System.out.println("├─────────────────────────────────────┤");
-
-        if ((packed + shipped) > 0) {
-            double avgPack = totalPackTime / (packed + shipped);
-            System.out.printf("│  Avg time to pack    : %7.0fs      │%n", avgPack);
-        }
-        if (dwellCount > 0) {
-            double avgDwell = totalDwellTime / dwellCount;
-            System.out.printf("│  Avg dwell (packed→shipped): %5.0fs │%n", avgDwell);
-        }
-        System.out.println("└─────────────────────────────────────┘");
+    System.out.println("\nSIMULATION SUMMARY");
+    System.out.println("Total shipments     : " + sim.getAllShipments().size());
+    System.out.println("RECEIVED (unrouted) : " + received);
+    System.out.println("ROUTED              : " + routed);
+    System.out.println("CONSOLIDATION       : " + consolidation);
+    System.out.println("READY               : " + ready);
+    System.out.println("PICKING             : " + picking);
+    System.out.println("PACKED              : " + packed);
+    System.out.println("SHIPPED             : " + shipped);
+    if (packCount > 0)
+        System.out.printf("Avg time to pack    : %.0fs%n", totalPackTime / packCount);
+    if (dwellCount > 0)
+        System.out.printf("Avg dwell           : %.0fs%n", totalDwellTime / dwellCount);
     }
 }
