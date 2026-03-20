@@ -1,8 +1,3 @@
-package events;
-
-import events.Event;
-import events.Simulation;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,10 +28,10 @@ public class TruckArrived extends Event {
         List<Shipment> shipped = new ArrayList<>();
 
         for (Shipment shipment : sim.getAllShipments()) {
-            if (shipment.getStatus() == Shipment.Status.PACKED
-                    && sortingDirection.equals(shipment.getSortingDirection())) {
-                shipment.markShipped(sim.getCurrentTime());
-                shipped.add(shipment);
+            if (shipment.getStatus() == Shipment.ShipmentStatus.PACKED
+                && sortingDirection.equals(shipment.getSortingDirection())) {
+                    shipment.markAsShipped(sim.getCurrentTime());
+                    shipped.add(shipment);
             }
         }
 

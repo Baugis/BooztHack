@@ -1,5 +1,3 @@
-package src.main.java.events;
-
 // Every event in the simulation extends this.
 // 'implements Comparable' so the priority queue can order events by time.
 public abstract class Event implements Comparable<Event> {

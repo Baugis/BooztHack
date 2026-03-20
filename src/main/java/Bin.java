@@ -1,5 +1,6 @@
 import java.util.HashMap;
 import java.util.Map;
+import com.google.gson.annotations.SerializedName;
 
 /**
  * Represents a physical bin in the warehouse that holds inventory (stock).
@@ -26,9 +27,11 @@ public class Bin {
     }
 
     /** Unique identifier for this bin (e.g. "BIN-AS1-1"). */
+    @SerializedName("id")
     private final String binId;
 
     /** The grid this bin currently belongs to (may change after a transfer). */
+    @SerializedName("gridId")
     private String gridId;
 
     /**
@@ -36,6 +39,7 @@ public class Bin {
      * Example: { "EAN-1": 5, "EAN-2": 12 }
      * Entries are removed automatically when their quantity reaches zero.
      */
+    @SerializedName("items")
     private final Map<String, Integer> stock;
 
     /** Current lifecycle status of the bin. Starts as AVAILABLE. */
