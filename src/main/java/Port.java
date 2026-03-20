@@ -302,6 +302,7 @@ public class Port {
     // -------------------------------------------------------------------------
     // Derinimas
     // -------------------------------------------------------------------------
+    
 
     @Override
     public String toString() {
@@ -309,7 +310,7 @@ public class Port {
                ", grid=" + gridId +
                ", status=" + status +
                ", queueSize=" + shipmentQueue.size() +
-               ", active=" + (activeShipment != null ? activeShipment.id : "nėra") +
+               ", active=" + (activeShipment != null ? activeShipment.getId() : "nėra") +
                ", flags=" + handlingFlags + "}";
     }
 }
