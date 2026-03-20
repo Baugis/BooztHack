@@ -104,12 +104,12 @@ public class BinPickCompleted extends Event {
      * Schedules a BinArrivedAtPort for the next pick in this shipment.
      * Marks the bin OUTSIDE (it's now en route to the port).
      */
-    private void requestNextBin(Simulation sim, Port port, Shipment shipment, RouterCaller.Pick pick) {
-        if (pick == null) return;
+    private void requestNextBin(Simulation sim, Port port, Shipment shipment, RouterDTOs.Pick nextPick) {
+        if (nextPick == null) return;
 
-        Bin bin = sim.getBin(pick.binId);
+        Bin bin = sim.getBin(nextPick.binId);
         if (bin == null) {
-            System.err.println("Next pick references unknown bin: " + pick.binId);
+            System.err.println("Next pick references unknown bin: " + nextPick.binId);
             return;
         }
 
@@ -123,14 +123,14 @@ public class BinPickCompleted extends Event {
                 sim.nextSequence(),
                 portId,
                 shipmentId,
-                pick.binId,
-                pick.ean,
-                pick.qty,
+                nextPick.binId,
+                nextPick.ean,
+                nextPick.qty,
                 shipment.getPackingGrid()  // gridId — needed so BinArrivedAtPort can find the bin
         ));
 
         System.out.printf("[%.0fs] Next bin requested: %s (arrives in %.1fs)%n",
-                sim.getCurrentTime(), pick.binId, deliveryDelay);
+                sim.getCurrentTime(), nextPick.binId, deliveryDelay);
     }
 
     /**
