@@ -59,10 +59,6 @@ public class BinArrivedAtPort extends Event {
             System.err.println("BinArrivedAtPort: unknown bin " + binId);
             return;
         }
-        if (bin == null) {
-            System.err.println("BinArrivedAtPort: unknown bin " + binId);
-            return;
-        }
 
         // Reserve the bin for this port now that it's physically here
         bin.reserve(portId);
