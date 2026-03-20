@@ -1,6 +1,7 @@
-import com.google.gson.annotations.SerializedName;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
+
+import com.google.gson.annotations.SerializedName;
 
 
 public class Shift {
@@ -34,6 +35,9 @@ public class Shift {
     public static class PortConfig {
         @SerializedName("id")
         public String portId;
+
+        @SerializedName("portIndex")  // pridėti šitą
+        public String portIndex;
 
         @SerializedName("handlingFlags")
         public List<String> handlingFlags = new ArrayList<>();

@@ -1,7 +1,8 @@
-import com.google.gson.annotations.SerializedName;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.ArrayList;
+
+import com.google.gson.annotations.SerializedName;
 
 public class RouterDTOs {
 
@@ -28,8 +29,16 @@ public class RouterDTOs {
     }
 
     public static class TruckArrivalWrapper {
-        public List<Object> schedules = new ArrayList<>();
+    public List<ScheduleEntry> schedules = new ArrayList<>();
+    
+    public static class ScheduleEntry {
+        @SerializedName("sorting_direction")
+        public String sortingDirection;
+        @SerializedName("pull_times")
+        public List<String> pullTimes;
+        public List<String> weekdays;
     }
+}
 
     public static class ShipmentDto {
         public String id;

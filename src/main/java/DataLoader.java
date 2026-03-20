@@ -11,9 +11,9 @@ import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
 public class DataLoader {
-    private final String shipmentPath = "Data/sample-data/level6/shipments.json";
-    private final String gridPath = "Data/sample-data/level6/grids.json";
-    private final String binPath = "Data/sample-data/level6/bins.json"; 
+    private final String shipmentPath = "Data/sample-data/level7/shipments.json";
+    private final String gridPath = "Data/sample-data/level7/grids.json";
+    private final String binPath = "Data/sample-data/level7/bins.json"; 
     private final Gson gson = new Gson();
 
     // --- 1. Load Shipments ---
@@ -34,6 +34,38 @@ public class DataLoader {
 
         @SerializedName("sortingDirection")
         String sortingDirection;
+    }
+
+    private final String paramsPath = "Data/sample-data/level7/params.json";
+
+    private static class ParamsDto {
+        @SerializedName("truckArrivalSchedules")
+        TruckSchedulesDto truckArrivalSchedules;
+    }
+
+    private static class TruckSchedulesDto {
+        List<TruckScheduleDto> schedules;
+    }
+
+    public static class TruckScheduleDto {
+        @SerializedName("sortingDirection")
+        public String sortingDirection;
+        @SerializedName("pullTimes")
+        public List<String> pullTimes;
+        @SerializedName("weekdays")
+        public List<String> weekdays;
+    }
+
+    public List<TruckScheduleDto> loadTruckSchedules() {
+        try (FileReader fr = new FileReader(paramsPath)) {
+            ParamsDto params = gson.fromJson(fr, ParamsDto.class);
+            if (params != null && params.truckArrivalSchedules != null) {
+                return params.truckArrivalSchedules.schedules;
+            }
+        } catch (IOException e) {
+            System.err.println("Could not load params.json: " + e.getMessage());
+        }
+        return new ArrayList<>();
     }
 
     public List<Shipment> loadShipmentsJson() {

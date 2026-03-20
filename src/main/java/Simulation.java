@@ -177,7 +177,11 @@ public class Simulation {
         return result;
     }
 
+    private List<RouterDTOs.TruckArrivalWrapper.ScheduleEntry> truckSchedules = new ArrayList<>();
     public RouterDTOs.TruckArrivalWrapper getTruckScheduleWrapper() {
         return new RouterDTOs.TruckArrivalWrapper();
     }
+    public void setTruckSchedules(List<RouterDTOs.TruckArrivalWrapper.ScheduleEntry> schedules) {
+    this.truckSchedules = schedules;
+}
 }

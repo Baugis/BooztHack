@@ -1,4 +1,5 @@
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Main {
@@ -78,12 +79,18 @@ public class Main {
         // -------------------------------------------------------------------------
         sim.scheduleAllShifts();
 
-        // Truck atvažiuoja 10:00 (36000s nuo vidurnakčio) REIKES PAKEIST KAD VEIKTU SU JSON FAILU
-        sim.schedule(new TruckArrived(
-            36000.0,
-            sim.nextSequence(),
-            "DEFAULT-DIR"
-        ));
+        List<DataLoader.TruckScheduleDto> truckSchedules = loader.loadTruckSchedules();
+        scheduleTrucks(sim, truckSchedules, epoch);
+
+        List<RouterDTOs.TruckArrivalWrapper.ScheduleEntry> routerEntries = new ArrayList<>();
+        for (DataLoader.TruckScheduleDto dto : truckSchedules) {
+            RouterDTOs.TruckArrivalWrapper.ScheduleEntry entry = new RouterDTOs.TruckArrivalWrapper.ScheduleEntry();
+            entry.sortingDirection = dto.sortingDirection;
+            entry.pullTimes        = dto.pullTimes;
+            entry.weekdays         = dto.weekdays;
+            routerEntries.add(entry);
+        }
+        sim.setTruckSchedules(routerEntries);
 
         // -------------------------------------------------------------------------
         // 7. Set up the router caller
@@ -117,6 +124,33 @@ public class Main {
         // -------------------------------------------------------------------------
         printSummary(sim);
     }
+
+    
+        private static void scheduleTrucks(Simulation sim, List<DataLoader.TruckScheduleDto> schedules, Instant epoch) {
+    
+            java.time.DayOfWeek epochDay = epoch.atZone(java.time.ZoneOffset.UTC).getDayOfWeek();
+            String epochWeekday = epochDay.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.ENGLISH); // "Sunday" etc.
+            
+            for (DataLoader.TruckScheduleDto schedule : schedules) {
+                if (schedule.weekdays == null || !schedule.weekdays.contains(epochWeekday)) {
+                continue;
+            }
+            for (String pullTime : schedule.pullTimes) {
+                String[] parts = pullTime.split(":");
+                double seconds = Integer.parseInt(parts[0]) * 3600 
+                               + Integer.parseInt(parts[1]) * 60;
+                sim.schedule(new TruckArrived(
+                    seconds,
+                    sim.nextSequence(),
+                    schedule.sortingDirection
+                ));
+                System.out.println("Scheduled truck: direction=" 
+                    + schedule.sortingDirection + " at " + pullTime);
+            }
+        }
+    }
+
+
 
     // -------------------------------------------------------------------------
     // Helpers
