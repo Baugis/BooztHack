@@ -39,7 +39,7 @@ public class RouterStateConverter {
         for (Grid g : allGrids) {
             RouterDTOs.GridDto gDto = new RouterDTOs.GridDto();
             
-            gDto.id = g.getId();; 
+            gDto.id = g.getId(); 
             
             // For Level 1, you can inject a dummy 24/7 shift so the router knows ports are open
             RouterDTOs.ShiftDto shiftDto = new RouterDTOs.ShiftDto();
