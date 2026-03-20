@@ -70,7 +70,7 @@ public class Shipment implements Serializable{
     public double getReceivedTime() { return receivedTime; }
     public double getPackedAt() { return packedTime; }
     public double getShippedAt() { return shippedTime; }
-    public String getCreatedAt() {  return createdAt}
+    public String getCreatedAt() {  return createdAt;}
 
     public Set<String> getHandlingFlags() { return handlingFlags; }
     public String getSortingDirection() { return sortingDirection; }
