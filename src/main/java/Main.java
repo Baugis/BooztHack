@@ -1,25 +1,30 @@
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 
 public class Main {
-    public static void main(String[] args){
+    public static void main(String[] args) {
 
         DataLoader loader = new DataLoader();
         List<Shipment> shipments = loader.loadShipmentsJson();
         List<Bin> bins = loader.loadBinsJson();
         List<Grid> grids = loader.loadGridsJson();
-        Gson prettyGson = new GsonBuilder().setPrettyPrinting().create();
+
+        System.out.println("Loaded: " + shipments.size() + " shipments, "
+                + bins.size() + " bins, "
+                + grids.size() + " grids");
+
+        if (shipments.isEmpty() || grids.isEmpty()) {
+            System.err.println("No data loaded — check that data files exist.");
+            return;
+        }
+
+        // *** ČIA BUVO PROBLEMA — epoch nebuvo apibrėžtas ***
+        Instant epoch = Instant.parse("2026-03-02T00:00:00Z"); // Pirmadienis!
 
         System.out.println("Simulation epoch: " + epoch);
 
-        // Run for 24 hours (86 400 seconds)
-        double simDurationSeconds = 86_400.0;
+        double simDurationSeconds = 86_400.0*3;
         Simulation sim = new Simulation(simDurationSeconds, epoch);
 
         // -------------------------------------------------------------------------
