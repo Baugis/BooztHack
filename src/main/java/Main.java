@@ -1,74 +1,237 @@
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 
 public class Main {
-    public static void main(String[] args){
 
+    public static void main(String[] args) {
+
+        // -------------------------------------------------------------------------
+        // 1. Load data from JSON files
+        // -------------------------------------------------------------------------
         DataLoader loader = new DataLoader();
+
         List<Shipment> shipments = loader.loadShipmentsJson();
-        List<Bin> bins = loader.loadBinsJson();
-        List<Grid> grids = loader.loadGridsJson();
-        Gson prettyGson = new GsonBuilder().setPrettyPrinting().create();
+        List<Bin>      bins      = loader.loadBinsJson();
+        List<Grid>     grids     = loader.loadGridsJson();
 
-        System.out.println(" SHIPMENTS #################################################");
-        System.out.println(prettyGson.toJson(shipments));
-        System.out.println(" BINS #################################################");
-        System.out.println(prettyGson.toJson(bins));
-        System.out.println(" GRIDS #################################################");
-        System.out.println(prettyGson.toJson(grids));
+        System.out.println("Loaded: " + shipments.size() + " shipments, "
+                + bins.size() + " bins, "
+                + grids.size() + " grids");
 
-        // ########################################### router  test ############################
-        String routerPath = "Data\\router\\router-windows-amd64.exe"; 
+        if (shipments.isEmpty() || grids.isEmpty()) {
+            System.err.println("No data loaded — check that Data/sample-data/level1/*.json files exist.");
+            return;
+        }
 
-        try {
-            System.out.println("Starting Router Process...");
-    
-            ProcessBuilder processBuilder = new ProcessBuilder(routerPath);
-            processBuilder.redirectErrorStream(true);
-            Process process = processBuilder.start();
+        // -------------------------------------------------------------------------
+        // 2. Determine simulation epoch from the earliest shipment's createdAt
+        //    All event times are measured in seconds from this instant.
+        // -------------------------------------------------------------------------
+        Instant epoch = Instant.parse("2026-03-01T00:00:00Z");
 
-            // 1. GENERATE THE LIVE JSON
-            // We get the date of the first shipment to use as our "now" time
-            String currentSimTime = shipments.get(0).createdAt; 
+        System.out.println("Simulation epoch: " + epoch);
 
-            RouterStateConverter converter = new RouterStateConverter();
-            String liveStateJson = converter.generateRouterJson(shipments, bins, grids, currentSimTime);
+        // Run for 24 hours (86 400 seconds)
+        double simDurationSeconds = 86_400.0*3;
+        Simulation sim = new Simulation(simDurationSeconds, epoch);
 
-            // 2. SEND THE JSON TO THE ROUTER
-            System.out.println("Sending data to Router...");
+        // -------------------------------------------------------------------------
+        // 3. Register grids into the simulation
+        // -------------------------------------------------------------------------
+        for (Grid grid : grids) {
+            sim.addGrid(grid);
+        }
 
-            OutputStream stdin = process.getOutputStream(); 
-
-            stdin.write(liveStateJson.getBytes(StandardCharsets.UTF_8));
-            stdin.flush();
-            stdin.close(); 
-
-            // 3. READ THE RESPONSE
-            System.out.println("Waiting for response...");
-            BufferedReader stdout = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            StringBuilder response = new StringBuilder();
-            String line;
-            while ((line = stdout.readLine()) != null) {
-                response.append(line).append("\n");
+        // -------------------------------------------------------------------------
+        // 4. Register bins into their grids
+        // -------------------------------------------------------------------------
+        for (Bin bin : bins) {
+            Grid grid = sim.getGrid(bin.getGridId());
+            if (grid != null) {
+                grid.addBin(bin);
+            } else {
+                System.err.println("Warning: bin " + bin.getBinId()
+                        + " references unknown grid " + bin.getGridId() + " — skipped");
             }
-        
-            System.out.println("\n--- ROUTER RESPONSE ---");
-            System.out.println(response.toString());
-            System.out.println("-----------------------");
-        
-            int exitCode = process.waitFor();
-            System.out.println("Router exited with code: " + exitCode);
+        }
 
-        } catch (Exception e) {
-                System.err.println("Something went wrong:");
-                e.printStackTrace();
+        // -------------------------------------------------------------------------
+        // 5. Schedule ShipmentReceived events for every shipment.
+        //    The event fires at the offset (in seconds) between the epoch and the
+        //    shipment's createdAt timestamp.
+        // -------------------------------------------------------------------------
+        for (Shipment shipment : shipments) {
+            if (shipment.createdAt == null) continue;
+            Instant createdAt = Instant.parse(shipment.createdAt);
+            double offsetSeconds = Math.max(0,
+                    (double) java.time.Duration.between(epoch, createdAt).toSeconds());
+
+            sim.schedule(new ShipmentReceived(
+                    offsetSeconds,
+                    sim.nextSequence(),
+                    shipment
+            ));
+        }
+
+        // -------------------------------------------------------------------------
+        // 6. Schedule shift open/close events for all grids
+        // -------------------------------------------------------------------------
+        sim.scheduleAllShifts();
+
+        List<DataLoader.TruckScheduleDto> truckSchedules = loader.loadTruckSchedules();
+        scheduleTrucks(sim, truckSchedules, epoch);
+
+        List<RouterDTOs.TruckArrivalWrapper.ScheduleEntry> routerEntries = new ArrayList<>();
+        for (DataLoader.TruckScheduleDto dto : truckSchedules) {
+            RouterDTOs.TruckArrivalWrapper.ScheduleEntry entry = new RouterDTOs.TruckArrivalWrapper.ScheduleEntry();
+            entry.sortingDirection = dto.sortingDirection;
+            entry.pullTimes        = dto.pullTimes;
+            entry.weekdays         = dto.weekdays;
+            routerEntries.add(entry);
+        }
+        sim.setTruckSchedules(routerEntries);
+
+        // -------------------------------------------------------------------------
+        // 7. Set up the router caller
+        //    Change the path to match your OS:
+        //      Windows : "Data\\router\\router-windows-amd64.exe"
+        //      Linux   : "Data/router/router-linux-amd64"
+        //      macOS   : "Data/router/router-darwin-amd64"
+        // -------------------------------------------------------------------------
+        String routerPath = detectRouterPath();
+        RouterCaller routerCaller = new RouterCaller(routerPath);
+
+        // -------------------------------------------------------------------------
+        // 8. Schedule the first router trigger at t=0 so shipments that arrive
+        //    at the start of the simulation are routed immediately.
+        // -------------------------------------------------------------------------
+        sim.schedule(new ShipmentRouterTriggered(
+                0.0,
+                sim.nextSequence(),
+                routerCaller
+        ));
+
+        // -------------------------------------------------------------------------
+        // 9. Run the simulation
+        // -------------------------------------------------------------------------
+        System.out.println("\n========== SIMULATION START ==========\n");
+        sim.run();
+        System.out.println("\n========== SIMULATION END ==========\n");
+
+        // -------------------------------------------------------------------------
+        // 10. Print summary statistics
+        // -------------------------------------------------------------------------
+        printSummary(sim);
+    }
+
+
+    private static void scheduleTrucks(Simulation sim, List<DataLoader.TruckScheduleDto> schedules, Instant epoch) {
+
+        java.time.DayOfWeek epochDay = epoch.atZone(java.time.ZoneOffset.UTC).getDayOfWeek();
+        String epochWeekday = epochDay.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.ENGLISH); // "Sunday" etc.
+
+        for (DataLoader.TruckScheduleDto schedule : schedules) {
+            if (schedule.weekdays == null || !schedule.weekdays.contains(epochWeekday)) {
+                continue;
             }
-    
+            for (String pullTime : schedule.pullTimes) {
+                String[] parts = pullTime.split(":");
+                double seconds = Integer.parseInt(parts[0]) * 3600
+                        + Integer.parseInt(parts[1]) * 60;
+                sim.schedule(new TruckArrived(
+                        seconds,
+                        sim.nextSequence(),
+                        schedule.sortingDirection
+                ));
+                System.out.println("Scheduled truck: direction="
+                        + schedule.sortingDirection + " at " + pullTime);
+            }
+        }
+    }
+
+
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Detects which router binary to use based on the current OS.
+     * You can override this by passing --router=<path> as a JVM argument or
+     * simply hardcoding the path directly.
+     */
+    private static String detectRouterPath() {
+        String os = System.getProperty("os.name", "").toLowerCase();
+        String base = "Data/router/";
+
+        if (os.contains("win")) {
+            return base + "router-windows-amd64.exe";
+        } else if (os.contains("mac")) {
+            return base + "router-darwin-amd64";
+        } else {
+            return base + "router-linux-amd64";
+        }
+    }
+
+    /**
+     * Prints a short end-of-simulation report: counts per status and
+     * timing stats for packed/shipped shipments.
+     */
+    private static void printSummary(Simulation sim) {
+        int received      = 0;
+        int routed        = 0;
+        int consolidation = 0;
+        int ready         = 0;
+        int picking       = 0;
+        int packed        = 0;
+        int shipped       = 0;
+
+        double totalPackTime  = 0;
+        double totalDwellTime = 0;
+        int    packCount      = 0;
+        int    dwellCount     = 0;
+
+        for (Shipment s : sim.getAllShipments()) {
+            switch (s.getStatus()) {
+                case RECEIVED      -> received++;
+                case ROUTED        -> routed++;
+                case CONSOLIDATION -> consolidation++;
+                case READY         -> ready++;
+                case PICKING       -> picking++;
+                case PACKED -> {
+                    packed++;
+                    if (s.getPackedAt() > 0) {
+                        totalPackTime += s.getPackedAt() - s.getReceivedTime();
+                        packCount++;
+                    }
+                }
+                case SHIPPED -> {
+                    shipped++;
+                    if (s.getPackedAt() > 0) {
+                        totalPackTime += s.getPackedAt() - s.getReceivedTime();
+                        packCount++;
+                    }
+                    if (s.getShippedAt() > 0 && s.getPackedAt() > 0) {
+                        totalDwellTime += s.getShippedAt() - s.getPackedAt();
+                        dwellCount++;
+                    }
+                }
+            }
+        }
+
+        System.out.println("\nSIMULATION SUMMARY");
+        System.out.println("Total shipments     : " + sim.getAllShipments().size());
+        System.out.println("RECEIVED (unrouted) : " + received);
+        System.out.println("ROUTED              : " + routed);
+        System.out.println("CONSOLIDATION       : " + consolidation);
+        System.out.println("READY               : " + ready);
+        System.out.println("PICKING             : " + picking);
+        System.out.println("PACKED              : " + packed);
+        System.out.println("SHIPPED             : " + shipped);
+        if (packCount > 0)
+            System.out.printf("Avg time to pack    : %.0fs%n", totalPackTime / packCount);
+        if (dwellCount > 0)
+            System.out.printf("Avg dwell           : %.0fs%n", totalDwellTime / dwellCount);
     }
 }
