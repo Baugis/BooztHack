@@ -1,0 +1,11 @@
+{
+  "simulationDays": 4,
+  "epochDate": "2026-03-01T00:00:00Z",
+  "dataDir": "Data/sample-data/level8",
+  "files": {
+    "shipments": "shipments.json",
+    "grids": "grids.json",
+    "bins": "bins.json",
+    "params": "params.json"
+  }
+}

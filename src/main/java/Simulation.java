@@ -59,20 +59,28 @@ public class Simulation {
     // -------------------------------------------------------------------------
 
     public void scheduleAllShifts() {
-        LocalTime epochTime = LocalTime.ofInstant(epochInstant, java.time.ZoneOffset.UTC);
+    LocalTime epochTime = LocalTime.ofInstant(epochInstant, java.time.ZoneOffset.UTC);
+    int totalDays = (int) Math.ceil(endTime / 86_400.0);
 
-        for (Grid grid : grids.values()) {
-            for (Shift shift : grid.getShifts()) {
+    for (Grid grid : grids.values()) {
+        for (Shift shift : grid.getShifts()) {
+            for (int day = 0; day < totalDays; day++) {
+                double dayOffset = day * 86_400.0;
+
                 LocalTime shiftStart = LocalTime.parse(shift.getStartAt(), TIME_FMT);
-                long offsetSecs = shiftStart.toSecondOfDay() - epochTime.toSecondOfDay();
-                if (offsetSecs < 0) offsetSecs += 86400;
+                long startSecs = shiftStart.toSecondOfDay() - epochTime.toSecondOfDay();
+                if (startSecs < 0) startSecs += 86400;
+
+                double absoluteStart = dayOffset + startSecs;
+                if (absoluteStart > endTime) continue;
 
                 schedule(new ShiftOpenEvent(
-                        offsetSecs,
+                        absoluteStart,
                         nextSequence(),
                         grid.getId(),
                         shift
                 ));
+                }
             }
         }
     }
