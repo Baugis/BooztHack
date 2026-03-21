@@ -33,8 +33,8 @@ public class BinTransferCompleted extends Event {
 
     @Override
     public void execute(Simulation sim) {
-        System.out.printf("[%.0fs] BinTransferCompleted: bin=%s, %s -> %s (took %.0fs)%n",
-                sim.getCurrentTime(), binId, sourceGridId, destinationGridId, transferDuration);
+        System.out.printf("[%s] BinTransferCompleted: bin=%s, %s -> %s (took %.0fs)%n",
+                sim.getTimeLabel(), binId, sourceGridId, destinationGridId, transferDuration);
 
         Grid sourceGrid = sim.getGrid(sourceGridId);
         Grid destGrid   = sim.getGrid(destinationGridId);
@@ -68,8 +68,8 @@ public class BinTransferCompleted extends Event {
 
                     // All bins have arrived at the destination grid — shipment is READY
                     shipment.markAsReady();
-                    System.out.printf("[%.0fs] Shipment %s READY (all transfers done)%n",
-                            sim.getCurrentTime(), shipmentId);
+                    System.out.printf("[%s] Shipment %s READY (all transfers done)%n",
+                            sim.getTimeLabel(), shipmentId);
 
                     // Try to assign to a port in the destination grid
                     Port port = destGrid.findBestPortFor(shipment);

@@ -35,8 +35,8 @@ public class BinArrivedAtPort extends Event {
 
     @Override
     public void execute(Simulation sim) {
-        System.out.printf("[%.0fs] BinArrivedAtPort: bin=%s, port=%s, shipment=%s%n",
-                sim.getCurrentTime(), binId, portId, shipmentId);
+        System.out.printf("[%s] BinArrivedAtPort: bin=%s, port=%s, shipment=%s%n",
+                sim.getTimeLabel(), binId, portId, shipmentId);
 
         Shipment shipment = sim.getShipment(shipmentId);
         if (shipment == null) {
@@ -47,8 +47,8 @@ public class BinArrivedAtPort extends Event {
         // Jei siunta jau pakuota — ignoruoti
         if (shipment.getStatus() == Shipment.ShipmentStatus.PACKED ||
             shipment.getStatus() == Shipment.ShipmentStatus.SHIPPED) {
-            System.out.printf("[%.0fs] BinArrivedAtPort: skipping — shipment %s already %s%n",
-                sim.getCurrentTime(), shipmentId, shipment.getStatus());
+            System.out.printf("[%s] BinArrivedAtPort: skipping — shipment %s already %s%n",
+                sim.getTimeLabel(), shipmentId, shipment.getStatus());
             return;
         }
 
@@ -70,8 +70,8 @@ public class BinArrivedAtPort extends Event {
         } else {
             boolean reserved = bin.reserve(portId);
             if (!reserved) {
-                System.out.printf("[%.0fs] Bin %s already reserved, port %s added to waiting list%n",
-                    sim.getCurrentTime(), binId, portId);
+                System.out.printf("[%s] Bin %s already reserved, port %s added to waiting list%n",
+                    sim.getTimeLabel(), binId, portId);
                 return;
             }
         }
@@ -99,7 +99,7 @@ public class BinArrivedAtPort extends Event {
                 gridId
         ));
 
-        System.out.printf("[%.0fs] Pick scheduled: %d x %s from bin %s, takes %.1fs%n",
-                sim.getCurrentTime(), qty, ean, binId, pickDuration);
+        System.out.printf("[%s] Pick scheduled: %d x %s from bin %s, takes %.1fs%n",
+                sim.getTimeLabel(), qty, ean, binId, pickDuration);
     }
 }

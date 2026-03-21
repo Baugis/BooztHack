@@ -27,8 +27,8 @@ public class BreakStartEvent extends Event {
             return;
         }
 
-        System.out.printf("[%.0fs] BreakStart: grid=%s break=%s-%s%n",
-                sim.getCurrentTime(), gridId, breakWindow.startAt, breakWindow.endAt);
+        System.out.printf("[%s] BreakStart: grid=%s break=%s-%s%n",
+                sim.getTimeLabel(), gridId, breakWindow.startAt, breakWindow.endAt);
 
         for (Shift.PortConfig cfg : shift.portConfig) {
             Port port = grid.getPort(cfg.portId);
@@ -42,15 +42,15 @@ public class BreakStartEvent extends Event {
             port.requestClose();
 
             if (port.getStatus() == Port.Status.CLOSED) {
-                System.out.printf("[%.0fs] Port %s paused for break%n",
-                        sim.getCurrentTime(), cfg.portId);
+                System.out.printf("[%s] Port %s paused for break%n",
+                        sim.getTimeLabel(), cfg.portId);
                 // Drain queue back to grid — will be re-assigned when break ends
                 for (Shipment s : port.drainQueue()) {
                     grid.enqueueShipment(s);
                 }
             } else {
-                System.out.printf("[%.0fs] Port %s -> PENDING_CLOSE for break%n",
-                        sim.getCurrentTime(), cfg.portId);
+                System.out.printf("[%s] Port %s -> PENDING_CLOSE for break%n",
+                        sim.getTimeLabel(), cfg.portId);
             }
         }
     }

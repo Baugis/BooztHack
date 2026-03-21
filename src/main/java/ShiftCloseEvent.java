@@ -25,8 +25,8 @@ public class ShiftCloseEvent extends Event {
             return;
         }
 
-        System.out.printf("[%.0fs] ShiftClose: grid=%s shift=%s-%s%n",
-                sim.getCurrentTime(), gridId, shift.getStartAt(), shift.getEndAt());
+        System.out.printf("[%s] ShiftClose: grid=%s shift=%s-%s%n",
+                sim.getTimeLabel(), gridId, shift.getStartAt(), shift.getEndAt());
 
         for (Shift.PortConfig cfg : shift.portConfig) {
             Port port = grid.getPort(cfg.portId);
@@ -40,16 +40,16 @@ public class ShiftCloseEvent extends Event {
             port.requestClose();
 
             if (port.getStatus() == Port.Status.CLOSED) {
-                System.out.printf("[%.0fs] Port %s closed (was IDLE)%n",
-                        sim.getCurrentTime(), cfg.portId);
+                System.out.printf("[%s] Port %s closed (was IDLE)%n",
+                        sim.getTimeLabel(), cfg.portId);
                 // Drain any queued shipments back to the grid queue
                 for (Shipment s : port.drainQueue()) {
                     grid.enqueueShipment(s);
                 }
             } else {
                 // PENDING_CLOSE — will close after current shipment finishes
-                System.out.printf("[%.0fs] Port %s -> PENDING_CLOSE (finishing current shipment)%n",
-                        sim.getCurrentTime(), cfg.portId);
+                System.out.printf("[%s] Port %s -> PENDING_CLOSE (finishing current shipment)%n",
+                        sim.getTimeLabel(), cfg.portId);
             }
         }
     }

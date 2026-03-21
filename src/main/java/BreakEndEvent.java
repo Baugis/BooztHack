@@ -27,8 +27,8 @@ public class BreakEndEvent extends Event {
             return;
         }
 
-        System.out.printf("[%.0fs] BreakEnd: grid=%s break=%s-%s%n",
-                sim.getCurrentTime(), gridId, breakWindow.startAt, breakWindow.endAt);
+        System.out.printf("[%s] BreakEnd: grid=%s break=%s-%s%n",
+                sim.getTimeLabel(), gridId, breakWindow.startAt, breakWindow.endAt);
 
         for (Shift.PortConfig cfg : shift.portConfig) {
             Port port = grid.getPort(cfg.portId);
@@ -38,8 +38,8 @@ public class BreakEndEvent extends Event {
             // are still finishing their last shipment from before the break)
             if (port.getStatus() == Port.Status.CLOSED) {
                 port.open();
-                System.out.printf("[%.0fs] Port %s reopened after break%n",
-                        sim.getCurrentTime(), cfg.portId);
+                System.out.printf("[%s] Port %s reopened after break%n",
+                        sim.getTimeLabel(), cfg.portId);
 
                 // Pull the next waiting shipment if any
                 if (grid.hasQueuedShipments()) {

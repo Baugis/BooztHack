@@ -35,7 +35,7 @@ public class ShipmentRouterTriggered extends Event {
 
     @Override
     public void execute(Simulation sim) {
-        System.out.printf("[%.0fs] ShipmentRouterTriggered%n", sim.getCurrentTime());
+        System.out.printf("[%s] ShipmentRouterTriggered%n", sim.getTimeLabel());
 
         // --- Step 1: Rollback ROUTED shipments still waiting in grid queues ---
         for (Grid grid : sim.getAllGrids()) {
@@ -72,8 +72,8 @@ public class ShipmentRouterTriggered extends Event {
         }
 
         if (state.shipmentsBacklog.isEmpty()) {
-            System.out.printf("[%.0fs] No shipments to route, skipping router call%n",
-                    sim.getCurrentTime());
+            System.out.printf("[%s] No shipments to route, skipping router call%n",
+                    sim.getTimeLabel());
             scheduleNext(sim);
             return;
         }
@@ -110,8 +110,8 @@ public class ShipmentRouterTriggered extends Event {
             return;
         }
 
-        System.out.printf("[%.0fs] Router returned %d assignments%n",
-                sim.getCurrentTime(),
+        System.out.printf("[%s] Router returned %d assignments%n",
+                sim.getTimeLabel(),
                 response.assignments == null ? 0 : response.assignments.size());
 
         // --- Step 4: Apply assignments ---
@@ -143,8 +143,8 @@ public class ShipmentRouterTriggered extends Event {
                     shipment.markAsConsolidation();
                     shipment.setPendingTransfers(foreignPicks.size());
 
-                    System.out.printf("[%.0fs] %s -> CONSOLIDATION (%d foreign bins to transfer)%n",
-                            sim.getCurrentTime(), shipment.getId(), foreignPicks.size());
+                    System.out.printf("[%s] %s -> CONSOLIDATION (%d foreign bins to transfer)%n",
+                            sim.getTimeLabel(), shipment.getId(), foreignPicks.size());
 
                     for (RouterDTOs.Pick pick : foreignPicks) {
                         Bin bin = sim.getBin(pick.binId);
@@ -168,8 +168,8 @@ public class ShipmentRouterTriggered extends Event {
                                 TRANSFER_DELAY_SECONDS
                         ));
 
-                        System.out.printf("[%.0fs] Transfer scheduled: bin=%s %s -> %s%n",
-                                sim.getCurrentTime(), pick.binId, sourceGrid, assignment.packingGrid);
+                        System.out.printf("[%s] Transfer scheduled: bin=%s %s -> %s%n",
+                                sim.getTimeLabel(), pick.binId, sourceGrid, assignment.packingGrid);
                     }
                     // Shipment will be port-assigned inside BinTransferCompleted
                     // once allTransfersDone() becomes true.
@@ -212,14 +212,14 @@ public class ShipmentRouterTriggered extends Event {
 
         if (port == null) {
             grid.enqueueShipment(shipment);
-            System.out.printf("[%.0fs] %s queued at grid %s (no port available)%n",
-                    sim.getCurrentTime(), shipment.getId(), grid.getId());
+            System.out.printf("[%s] %s queued at grid %s (no port available)%n",
+                    sim.getTimeLabel(), shipment.getId(), grid.getId());
             return;
         }
 
         port.enqueue(shipment);
-        System.out.printf("[%.0fs] %s assigned to port %s%n",
-                sim.getCurrentTime(), shipment.getId(), port.getId());
+        System.out.printf("[%s] %s assigned to port %s%n",
+                sim.getTimeLabel(), shipment.getId(), port.getId());
 
         if (port.getStatus() == Port.Status.IDLE) {
             Shipment next = port.startNextShipment();
@@ -253,8 +253,8 @@ public class ShipmentRouterTriggered extends Event {
                 shipment.getPackingGrid()
         ));
 
-        System.out.printf("[%.0fs] Bin %s requested at port %s (arrives in %.1fs)%n",
-                sim.getCurrentTime(), pick.binId, port.getId(), deliveryDelay);
+        System.out.printf("[%s] Bin %s requested at port %s (arrives in %.1fs)%n",
+                sim.getTimeLabel(), pick.binId, port.getId(), deliveryDelay);
     }
 
     private void scheduleNext(Simulation sim) {

@@ -122,6 +122,14 @@ public class Simulation {
         return instant.toString();
     }
 
+    public String getTimeLabel() {
+        long secs = (long) currentTime;
+        long h = secs / 3600;
+        long m = (secs % 3600) / 60;
+        long s = secs % 60;
+        return String.format("%02d:%02d:%02d [%.0fs]", h, m, s, currentTime);
+    }
+
     // -------------------------------------------------------------------------
     // State accessors
     // -------------------------------------------------------------------------
