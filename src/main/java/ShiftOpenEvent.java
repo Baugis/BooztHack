@@ -32,25 +32,26 @@ public class ShiftOpenEvent extends Event {
             return;
         }
 
-        System.out.printf("[%.0fs] ShiftOpen: grid=%s shift=%s-%s%n",
+            System.out.printf("[%.0fs] ShiftOpen: grid=%s shift=%s-%s%n",
                 sim.getCurrentTime(), gridId, shift.getStartAt(), shift.getEndAt());
 
         // Open (or create) each port listed in this shift's config
-        for (Shift.PortConfig cfg : shift.portConfig) {
-            Port port = grid.getPort(cfg.portId);
-            if (port == null) {
-                // Port doesn't exist yet — create it now from the config
-                Set<String> flags = new HashSet<>(cfg.handlingFlags);
-                port = new Port(cfg.portId, gridId, flags);
-                grid.addPort(port);
+            for (Shift.PortConfig cfg : shift.portConfig) {
+                String portId = cfg.portId != null ? cfg.portId : "port-" + cfg.portIndex;
+                Port port = grid.getPort(portId);
+                if (port == null) {
+        // Port doesn't exist yet — create it now from the config
+                    Set<String> flags = new HashSet<>(cfg.handlingFlags);
+                    port = new Port(portId, gridId, flags);
+                    grid.addPort(port);
             }
-            // Only open if currently CLOSED (may already be open from a prior shift)
+    // Only open if currently CLOSED (may already be open from a prior shift)
             if (port.getStatus() == Port.Status.CLOSED) {
                 port.open();
-                System.out.printf("[%.0fs] Port %s opened%n", sim.getCurrentTime(), cfg.portId);
+                System.out.printf("[%.0fs] Port %s opened%n", sim.getCurrentTime(), portId);
             }
 
-            // If an idle port has shipments waiting in the grid queue, pull one now
+    // If an idle port has shipments waiting in the grid queue, pull one now
             if (port.getStatus() == Port.Status.IDLE && grid.hasQueuedShipments()) {
                 tryAssignFromGridQueue(sim, grid, port);
             }
@@ -70,8 +71,10 @@ public class ShiftOpenEvent extends Event {
             double breakStartTime = shiftStartSec + breakStartOffset;
             double breakEndTime   = shiftStartSec + breakEndOffset;
 
-            sim.schedule(new BreakStartEvent(breakStartTime, sim.nextSequence(), gridId, shift, brk));
-            sim.schedule(new BreakEndEvent(breakEndTime,     sim.nextSequence(), gridId, shift, brk));
+            long breakStartSeq = sim.nextSequence();
+            long breakEndSeq   = sim.nextSequence();
+            sim.schedule(new BreakStartEvent(breakStartTime, breakStartSeq, gridId, shift, brk));
+            sim.schedule(new BreakEndEvent(breakEndTime,     breakEndSeq,   gridId, shift, brk));
         }
 
         // Schedule shift close
