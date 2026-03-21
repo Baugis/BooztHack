@@ -82,7 +82,7 @@ public class Main {
         sim.schedule(new TruckArrived(
             36000.0,
             sim.nextSequence(),
-            "DEFAULT-DIR"
+            "DEFAULT-DIR", 36000.0
         ));
 
         // -------------------------------------------------------------------------
