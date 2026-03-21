@@ -1,11 +1,12 @@
-import com.google.gson.Gson;
-import com.google.gson.annotations.SerializedName;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.google.gson.Gson;
+import com.google.gson.annotations.SerializedName;
 
 /**
  * Loads simulation parameters from params.json.
@@ -28,11 +29,14 @@ public class ParamsLoader {
     // -------------------------------------------------------------------------
 
     private static class ParamsDto {
-        @SerializedName("truckArrivalSchedules")
-        TruckArrivalSchedulesDto truckArrivalSchedules;
+    @SerializedName("truckArrivalSchedules")
+    TruckArrivalSchedulesDto truckArrivalSchedules;
 
-        @SerializedName("conveyors")
-        List<ConveyorDto> conveyors;
+    @SerializedName("conveyors")
+    List<ConveyorDto> conveyors; // level8 formatas
+
+    @SerializedName("transfersConveyors")
+    TransfersConveyorsDto transfersConveyors; // level9 formatas
     }
 
     private static class TruckArrivalSchedulesDto {
@@ -49,6 +53,16 @@ public class ParamsLoader {
         String from;
         String to;
         int transferTimeSeconds;
+    }
+
+    private static class TransfersConveyorsDto {
+    List<TransferDurationDto> durations;
+    }
+
+    private static class TransferDurationDto {
+        String from;
+        String to;
+        int duration; // seconds (ne transferTimeSeconds)
     }
 
     // -------------------------------------------------------------------------
@@ -81,13 +95,12 @@ public class ParamsLoader {
      * Returns an empty map if no conveyors are defined.
      */
     public Map<String, Double> loadConveyors() {
-        ParamsDto params = readParams();
-        Map<String, Double> result = new HashMap<>();
-        if (params == null || params.conveyors == null) {
-            System.err.println("Warning: no conveyors found in " + paramsPath
-                    + " — using default 300s transfer delay");
-            return result;
-        }
+    ParamsDto params = readParams();
+    Map<String, Double> result = new HashMap<>();
+    if (params == null) return result;
+
+    // Level 8 formatas: "conveyors" su "transferTimeSeconds"
+    if (params.conveyors != null) {
         for (ConveyorDto dto : params.conveyors) {
             if (dto.from == null || dto.to == null) continue;
             String key = dto.from + "->" + dto.to;
@@ -95,8 +108,28 @@ public class ParamsLoader {
             System.out.printf("Conveyor loaded: %s -> %s (%ds)%n",
                     dto.from, dto.to, dto.transferTimeSeconds);
         }
-        return result;
     }
+
+    // Level 9 formatas: "transfersConveyors.durations" su "duration"
+    if (params.transfersConveyors != null && params.transfersConveyors.durations != null) {
+        for (TransferDurationDto dto : params.transfersConveyors.durations) {
+            if (dto.from == null || dto.to == null) continue;
+            String key = dto.from + "->" + dto.to;
+            result.put(key, (double) dto.duration);
+            // Pridėti ir atvirkštinę kryptį jei nėra
+            String reverseKey = dto.to + "->" + dto.from;
+            result.putIfAbsent(reverseKey, (double) dto.duration);
+            System.out.printf("Conveyor loaded: %s <-> %s (%ds)%n",
+                    dto.from, dto.to, dto.duration);
+        }
+    }
+
+    if (result.isEmpty()) {
+        System.err.println("Warning: no conveyors found in " + paramsPath
+                + " — using default 300s transfer delay");
+    }
+    return result;
+}
 
     // -------------------------------------------------------------------------
     // Internal helpers

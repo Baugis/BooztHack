@@ -149,7 +149,7 @@ public class Main {
         // -------------------------------------------------------------------------
         // 10. Summary
         // -------------------------------------------------------------------------
-        printSummary(sim, truckSchedules, epochDayName);
+        printSummary(sim, truckSchedules, epochDayName, epochDate, simDurationSeconds);
     }
 
     // -------------------------------------------------------------------------
@@ -165,15 +165,27 @@ public class Main {
     }
 
     private static void printSummary(Simulation sim,
-                                     List<TruckSchedule> truckSchedules,
-                                     String epochDayName) {
+                                 List<TruckSchedule> truckSchedules,
+                                 String epochDayName,
+                                 LocalDate epochDate,
+                                 double simDurationSeconds) {
+
+        int totalDays = (int) Math.ceil(simDurationSeconds / 86_400.0);
+
         java.util.Map<String, Double> earliestPull = new java.util.HashMap<>();
-        for (TruckSchedule ts : truckSchedules) {
-            if (!ts.weekdays.contains(epochDayName)) continue;
-            for (String pt : ts.pullTimes) {
-                double secs = LocalTime.parse(pt, DateTimeFormatter.ofPattern("HH:mm"))
-                        .toSecondOfDay();
-                earliestPull.merge(ts.sortingDirection, secs, Math::min);
+        for (int day = 0; day < totalDays; day++) {
+            LocalDate currentDate = epochDate.plusDays(day);
+            String dayName = currentDate.getDayOfWeek()
+                    .getDisplayName(TextStyle.FULL, Locale.ENGLISH);
+            double dayOffsetSecs = day * 86_400.0;
+
+            for (TruckSchedule ts : truckSchedules) {
+                if (!ts.weekdays.contains(dayName)) continue;
+                for (String pt : ts.pullTimes) {
+                    double secs = dayOffsetSecs + LocalTime.parse(pt, DateTimeFormatter.ofPattern("HH:mm"))
+                            .toSecondOfDay();
+                    earliestPull.merge(ts.sortingDirection, secs, Math::min);
+                }
             }
         }
 

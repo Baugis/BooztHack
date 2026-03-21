@@ -52,7 +52,7 @@
   "truckArrivalSchedules": {
     "schedules": [
       {
-        "sortingDirection": "direction-1",
+        "sortingDirection": "dir-1",
         "pullTimes": [
           "14:00",
           "18:00"
@@ -67,7 +67,7 @@
         ]
       },
       {
-        "sortingDirection": "direction-1",
+        "sortingDirection": "dir-1",
         "pullTimes": [
           "19:00"
         ],
@@ -76,7 +76,7 @@
         ]
       },
       {
-        "sortingDirection": "direction-2",
+        "sortingDirection": "dir-2",
         "pullTimes": [
           "16:30"
         ],
