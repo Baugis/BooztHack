@@ -22,10 +22,6 @@ public class ShipmentRouterTriggered extends Event {
 
     private static final double ROUTER_INTERVAL_SECONDS = 900.0;
 
-    // Transfer time in seconds per grid hop (placeholder — replace with
-    // per-conveyor config at higher levels).
-    private static final double TRANSFER_DELAY_SECONDS = 300.0;
-
     private final RouterCaller routerCaller;
 
     public ShipmentRouterTriggered(double simTime, long sequenceNumber, RouterCaller routerCaller) {
@@ -155,21 +151,23 @@ public class ShipmentRouterTriggered extends Event {
                         }
 
                         String sourceGrid = bin.getGridId();
-                        bin.markOutside();
 
-                        double arrivalTime = sim.getCurrentTime() + TRANSFER_DELAY_SECONDS;
-                        sim.schedule(new BinTransferCompleted(
-                                arrivalTime,
+                        // Look up the real conveyor delay between these two grids
+                        double transferDelay = sim.getTransferDelay(sourceGrid, assignment.packingGrid);
+
+                        sim.schedule(new BinTransferStarted(
+                                sim.getCurrentTime(),
                                 sim.nextSequence(),
                                 pick.binId,
                                 sourceGrid,
                                 assignment.packingGrid,
                                 shipment.getId(),
-                                TRANSFER_DELAY_SECONDS
+                                transferDelay
                         ));
 
-                        System.out.printf("[%s] Transfer scheduled: bin=%s %s -> %s%n",
-                                sim.getTimeLabel(), pick.binId, sourceGrid, assignment.packingGrid);
+                        System.out.printf("[%s] Transfer scheduled: bin=%s %s -> %s (delay=%.0fs)%n",
+                                sim.getTimeLabel(), pick.binId, sourceGrid,
+                                assignment.packingGrid, transferDelay);
                     }
                     // Shipment will be port-assigned inside BinTransferCompleted
                     // once allTransfersDone() becomes true.
@@ -191,7 +189,7 @@ public class ShipmentRouterTriggered extends Event {
      * shipment's packingGrid. These need a conveyor transfer before picking.
      */
     private List<RouterDTOs.Pick> findForeignPicks(Simulation sim,
-                                                     RouterDTOs.Assignment assignment) {
+                                                   RouterDTOs.Assignment assignment) {
         List<RouterDTOs.Pick> foreign = new ArrayList<>();
         if (assignment.picks == null) return foreign;
         for (RouterDTOs.Pick pick : assignment.picks) {

@@ -1,3 +1,4 @@
+import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -16,7 +17,11 @@ public class Main {
         // -------------------------------------------------------------------------
         // 1. Load data from JSON files
         // -------------------------------------------------------------------------
-        DataLoader loader = new DataLoader();
+        DataLoader loader = new DataLoader(
+                "Data/sample-data/level8/shipments.json",
+                "Data/sample-data/level8/grids.json",
+                "Data/sample-data/level8/bins.json"
+        );
 
         List<Shipment> shipments = loader.loadShipmentsJson();
         List<Bin>      bins      = loader.loadBinsJson();
@@ -35,11 +40,11 @@ public class Main {
         // 2. Epoch — 2026-03-02 is a Monday so truck schedules (Mon-Fri) will fire.
         //    Change this if your shipment dates use a different start day.
         // -------------------------------------------------------------------------
-        Instant epoch = Instant.parse("2026-03-01T00:00:00Z"); // Monday
+        Instant epoch = Instant.parse("2026-03-02T00:00:00Z"); // Monday
 
         System.out.println("Simulation epoch: " + epoch);
 
-        double simDurationSeconds = 86_400.0*4;
+        double simDurationSeconds = 86_400.0*5;
         Simulation sim = new Simulation(simDurationSeconds, epoch);
 
         // -------------------------------------------------------------------------
@@ -83,9 +88,14 @@ public class Main {
         // 7. Load truck schedules from params.json and schedule TruckArrived events.
         //    Only schedules trucks that run on the epoch's day of week.
         // -------------------------------------------------------------------------
-        ParamsLoader paramsLoader = new ParamsLoader("Data/sample-data/level7/params.json");
+        ParamsLoader paramsLoader = new ParamsLoader("Data/sample-data/level8/params.json");
         List<TruckSchedule> truckSchedules = paramsLoader.loadTruckSchedules();
         System.out.println("Loaded: " + truckSchedules.size() + " truck schedule(s)");
+
+        // Load and register conveyor delays
+        java.util.Map<String, Double> conveyors = paramsLoader.loadConveyors();
+        sim.registerConveyors(conveyors);
+        System.out.println("Loaded: " + conveyors.size() + " conveyor(s)");
 
         LocalDate epochDate = epoch.atZone(ZoneOffset.UTC).toLocalDate();
         String epochDayName = epochDate.getDayOfWeek()
@@ -94,25 +104,24 @@ public class Main {
 
         int truckEventsScheduled = 0;
         for (TruckSchedule ts : truckSchedules) {
-            for (int dayOffset = 0; dayOffset < 7; dayOffset++) {
-                LocalDate currentDate = epochDate.plusDays(dayOffset);
-                String dayName = currentDate.getDayOfWeek()
-                    .getDisplayName(TextStyle.FULL, Locale.ENGLISH);
-
-                if (!ts.weekdays.contains(dayName)) continue;
-
-                for (String pullTimeStr : ts.pullTimes) {
-                    double pullTimeSecs = dayOffset * 86400.0
-                            + LocalTime.parse(pullTimeStr, TIME_FMT).toSecondOfDay();
-                    if (pullTimeSecs > simDurationSeconds) continue;
-
-                    sim.schedule(new TruckArrived(
+            if (!ts.weekdays.contains(epochDayName)) {
+                System.out.printf("Skipping trucks for dir=%s (not active on %s)%n",
+                        ts.sortingDirection, epochDayName);
+                continue;
+            }
+            for (String pullTimeStr : ts.pullTimes) {
+                double pullTimeSecs = LocalTime.parse(pullTimeStr, TIME_FMT).toSecondOfDay();
+                if (pullTimeSecs > simDurationSeconds) {
+                    System.out.printf("Skipping truck dir=%s at %s (outside sim window)%n",
+                            ts.sortingDirection, pullTimeStr);
+                    continue;
+                }
+                sim.schedule(new TruckArrived(
                         pullTimeSecs, sim.nextSequence(),
                         ts.sortingDirection, pullTimeSecs));
-                    System.out.printf("Scheduled truck: dir=%s at %s day+%d (t=%.0fs)%n",
-                            ts.sortingDirection, pullTimeStr, dayOffset, pullTimeSecs);
-                    truckEventsScheduled++;
-                }
+                System.out.printf("Scheduled truck: dir=%s at %s (t=%.0fs)%n",
+                        ts.sortingDirection, pullTimeStr, pullTimeSecs);
+                truckEventsScheduled++;
             }
         }
         System.out.println("Total truck events scheduled: " + truckEventsScheduled);
@@ -136,7 +145,7 @@ public class Main {
         // -------------------------------------------------------------------------
         // 10. Summary
         // -------------------------------------------------------------------------
-        printSummary(sim, truckSchedules, epochDayName, epochDate);
+        printSummary(sim, truckSchedules, epochDayName);
     }
 
     // -------------------------------------------------------------------------
@@ -152,22 +161,16 @@ public class Main {
     }
 
     private static void printSummary(Simulation sim,
-                                 List<TruckSchedule> truckSchedules,
-                                 String epochDayName,
-                                 LocalDate epochDate) {
+                                     List<TruckSchedule> truckSchedules,
+                                     String epochDayName) {
         // Build earliest pull time per direction for on-time KPI
         java.util.Map<String, Double> earliestPull = new java.util.HashMap<>();
         for (TruckSchedule ts : truckSchedules) {
-            for (int dayOffset = 0; dayOffset < 7; dayOffset++) {
-                LocalDate currentDate = epochDate.plusDays(dayOffset);
-                String dayName = currentDate.getDayOfWeek()
-                    .getDisplayName(TextStyle.FULL, Locale.ENGLISH);
-                if (!ts.weekdays.contains(dayName)) continue;
-                for (String pt : ts.pullTimes) {
-                    double secs = dayOffset * 86400.0
-                        + LocalTime.parse(pt, DateTimeFormatter.ofPattern("HH:mm")).toSecondOfDay();
-                    earliestPull.merge(ts.sortingDirection, secs, Math::min);
-                }
+            if (!ts.weekdays.contains(epochDayName)) continue;
+            for (String pt : ts.pullTimes) {
+                double secs = LocalTime.parse(pt, DateTimeFormatter.ofPattern("HH:mm"))
+                        .toSecondOfDay();
+                earliestPull.merge(ts.sortingDirection, secs, Math::min);
             }
         }
 

@@ -18,12 +18,12 @@ public class DataLoader {
 
     private final Gson gson = new Gson();
 
-    /** Default constructor — points at level7 sample data. */
+    /** Default constructor — points at level8 sample data. */
     public DataLoader() {
         this(
-                "Data/sample-data/level7/shipments.json",
-                "Data/sample-data/level7/grids.json",
-                "Data/sample-data/level7/bins.json"
+                "Data/sample-data/level8/shipments.json",
+                "Data/sample-data/level8/grids.json",
+                "Data/sample-data/level8/bins.json"
         );
     }
 
@@ -80,7 +80,7 @@ public class DataLoader {
 
     // =========================================================================
     // 2. Grids
-    //    grids.json uses "start"/"end" and portConfig with "portIndex" (int).
+    //    grids.json uses "start"/"end" and portConfig with "portIndex" (String or int).
     //    We map portIndex -> "port-{gridId}-{portIndex}" to get a stable String ID.
     // =========================================================================
 
@@ -98,7 +98,9 @@ public class DataLoader {
     }
 
     private static class PortConfigLoadDto {
-        int portIndex;
+        // Level 8+ data uses a String portIndex (e.g. "port-1").
+        // Gson deserialises both "port-1" and 0 safely as String.
+        String portIndex;
         List<String> handlingFlags;
     }
 
@@ -118,8 +120,12 @@ public class DataLoader {
                             if (sDto.portConfig != null) {
                                 for (PortConfigLoadDto pDto : sDto.portConfig) {
                                     Shift.PortConfig pc = new Shift.PortConfig();
-                                    // Convert integer portIndex -> stable string ID
-                                    pc.portId = "port-" + gDto.id + "-" + pDto.portIndex;
+                                    // Use portIndex as-is if it already looks like a full ID,
+                                    // otherwise prefix with gridId for uniqueness.
+                                    String idx = pDto.portIndex != null ? pDto.portIndex : "0";
+                                    pc.portId = idx.contains("-")
+                                            ? gDto.id + "-" + idx   // e.g. "AS1-port-1"
+                                            : "port-" + gDto.id + "-" + idx; // e.g. "port-AS1-0"
                                     pc.handlingFlags = pDto.handlingFlags != null
                                             ? pDto.handlingFlags : new ArrayList<>();
                                     shift.portConfig.add(pc);

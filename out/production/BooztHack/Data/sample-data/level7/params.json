@@ -3,26 +3,18 @@
     "schedules": [
       {
         "sortingDirection": "dir-1",
-        "pullTimes": [
-          "10:00", "15:00", "21:00"
-        ],
-        "weekdays": [
-          "Monday",
-          "Tuesday",
-          "Wednesday",
-          "Thursday",
-          "Friday"
-        ]
+        "pullTimes": ["10:00", "15:00", "21:00"],
+        "weekdays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
       },
       {
         "sortingDirection": "dir-2",
-        "pullTimes": [
-          "15:00"
-        ],
-        "weekdays": [
-          "Wednesday"
-        ]
+        "pullTimes": ["15:00"],
+        "weekdays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
       }
     ]
-  }
+  },
+  "conveyors": [
+    { "from": "AS1", "to": "AS2", "transferTimeSeconds": 300 },
+    { "from": "AS2", "to": "AS1", "transferTimeSeconds": 300 }
+  ]
 }

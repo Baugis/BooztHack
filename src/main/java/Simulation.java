@@ -22,6 +22,11 @@ public class Simulation {
     private final Map<String, Grid>     grids;
     private final Map<String, Shipment> shipments;
 
+    /** Key: "fromGridId->toGridId", value: transfer time in seconds. */
+    private final Map<String, Double> conveyorDelays = new HashMap<>();
+
+    private static final double DEFAULT_TRANSFER_DELAY = 300.0;
+
     public Simulation(double endTime, Instant epochInstant) {
         this.eventQueue    = new EventQueue();
         this.currentTime   = 0;
@@ -105,8 +110,8 @@ public class Simulation {
     private String shiftTimeToIso(String hhMm) {
         LocalTime t = LocalTime.parse(hhMm, TIME_FMT);
         Instant instant = epochInstant
-            .truncatedTo(ChronoUnit.DAYS)
-            .plus(t.toSecondOfDay(), ChronoUnit.SECONDS);
+                .truncatedTo(ChronoUnit.DAYS)
+                .plus(t.toSecondOfDay(), ChronoUnit.SECONDS);
         return instant.toString();
     }
 
@@ -114,8 +119,8 @@ public class Simulation {
         LocalTime t     = LocalTime.parse(hhMm,      TIME_FMT);
         LocalTime start = LocalTime.parse(startHhMm, TIME_FMT);
         Instant instant = epochInstant
-            .truncatedTo(ChronoUnit.DAYS)
-            .plus(t.toSecondOfDay(), ChronoUnit.SECONDS);
+                .truncatedTo(ChronoUnit.DAYS)
+                .plus(t.toSecondOfDay(), ChronoUnit.SECONDS);
         if (!t.isAfter(start)) {
             instant = instant.plus(1, ChronoUnit.DAYS);
         }
@@ -156,6 +161,23 @@ public class Simulation {
 
     public double getDeliveryDelay(String gridId) {
         return 60.0;
+    }
+
+    /**
+     * Registers conveyor delays loaded from params.json.
+     * Call this during simulation setup before running.
+     */
+    public void registerConveyors(Map<String, Double> delays) {
+        conveyorDelays.putAll(delays);
+    }
+
+    /**
+     * Returns the conveyor transfer time in seconds between two grids.
+     * Falls back to DEFAULT_TRANSFER_DELAY if no conveyor is configured.
+     */
+    public double getTransferDelay(String fromGridId, String toGridId) {
+        String key = fromGridId + "->" + toGridId;
+        return conveyorDelays.getOrDefault(key, DEFAULT_TRANSFER_DELAY);
     }
 
     // -------------------------------------------------------------------------
