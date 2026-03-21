@@ -32,8 +32,8 @@ public class ShiftOpenEvent extends Event {
             return;
         }
 
-            System.out.printf("[%.0fs] ShiftOpen: grid=%s shift=%s-%s%n",
-                sim.getCurrentTime(), gridId, shift.getStartAt(), shift.getEndAt());
+            System.out.printf("[%s] ShiftOpen: grid=%s shift=%s-%s%n",
+                sim.getTimeLabel(), gridId, shift.getStartAt(), shift.getEndAt());
 
         // Open (or create) each port listed in this shift's config
             for (Shift.PortConfig cfg : shift.portConfig) {
@@ -48,7 +48,7 @@ public class ShiftOpenEvent extends Event {
     // Only open if currently CLOSED (may already be open from a prior shift)
             if (port.getStatus() == Port.Status.CLOSED) {
                 port.open();
-                System.out.printf("[%.0fs] Port %s opened%n", sim.getCurrentTime(), portId);
+                System.out.printf("[%s] Port %s opened%n", sim.getTimeLabel(), portId);
             }
 
     // If an idle port has shipments waiting in the grid queue, pull one now

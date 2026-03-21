@@ -26,8 +26,8 @@ public class BinPickCompleted extends Event {
 
     @Override
     public void execute(Simulation sim) {
-        System.out.printf("[%.0fs] BinPickCompleted: bin=%s, %d x %s, port=%s, shipment=%s%n",
-                sim.getCurrentTime(), binId, qty, ean, portId, shipmentId);
+        System.out.printf("[%s] BinPickCompleted: bin=%s, %d x %s, port=%s, shipment=%s%n",
+                sim.getTimeLabel(), binId, qty, ean, portId, shipmentId);
 
         Shipment shipment = sim.getShipment(shipmentId);
         if (shipment == null) {
@@ -85,8 +85,8 @@ public class BinPickCompleted extends Event {
                         pick.qty,
                         waiting.getPackingGrid()
                     ));
-                    System.out.printf("[%.0fs] Bin %s handed to waiting port %s%n",
-                        sim.getCurrentTime(), bin.getBinId(), nextPortId);
+                    System.out.printf("[%s] Bin %s handed to waiting port %s%n",
+                        sim.getTimeLabel(), bin.getBinId(), nextPortId);
                 }
             }
         }
@@ -103,8 +103,8 @@ public class BinPickCompleted extends Event {
 
         // --- 5. All picks done — PACKED ---
         shipment.markAsPacked(sim.getCurrentTime());
-        System.out.printf("[%.0fs] PACKED: shipment=%s (pack duration=%.1fs)%n",
-                sim.getCurrentTime(), shipmentId, pickDuration);
+        System.out.printf("[%s] PACKED: shipment=%s (pack duration=%.1fs)%n",
+                sim.getTimeLabel(), shipmentId, pickDuration);
 
         // --- 6. Free port ---
         Shipment nextShipment = port.finishCurrentShipment();
@@ -140,8 +140,8 @@ public class BinPickCompleted extends Event {
                 shipment.getPackingGrid()
         ));
 
-        System.out.printf("[%.0fs] Next bin requested: %s (arrives in %.1fs)%n",
-                sim.getCurrentTime(), nextPick.binId, deliveryDelay);
+        System.out.printf("[%s] Next bin requested: %s (arrives in %.1fs)%n",
+                sim.getTimeLabel(), nextPick.binId, deliveryDelay);
     }
 
     private void tryAssignFromGridQueue(Simulation sim, Grid grid, Port port) {
@@ -155,8 +155,8 @@ public class BinPickCompleted extends Event {
             Shipment started = port.startNextShipment();
             if (started != null) {
                 requestNextBin(sim, port, started, started.nextPick());
-                System.out.printf("[%.0fs] Port %s pulled %s from grid queue%n",
-                        sim.getCurrentTime(), port.getId(), started.getId());
+                System.out.printf("[%s] Port %s pulled %s from grid queue%n",
+                        sim.getTimeLabel(), port.getId(), started.getId());
             }
         } else {
             grid.enqueueShipment(next);

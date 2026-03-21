@@ -26,7 +26,7 @@ public class ShipmentReceived extends Event {
         // Register it so other events can look it up by ID
         sim.addShipment(shipment);
 
-        System.out.printf("[%.0fs] ShipmentReceived: %s%n",
-                sim.getCurrentTime(), shipment.getId());
+        System.out.printf("[%s] ShipmentReceived: %s%n",
+                sim.getTimeLabel(), shipment.getId());
     }
 }

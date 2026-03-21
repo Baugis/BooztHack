@@ -11,9 +11,9 @@ import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
 public class DataLoader {
-    private final String shipmentPath = "Data/sample-data/level7/shipments.json";
-    private final String gridPath = "Data/sample-data/level7/grids.json";
-    private final String binPath = "Data/sample-data/level7/bins.json"; 
+    private final String shipmentPath = "Data/sample-data/level1/shipments.json";
+    private final String gridPath = "Data/sample-data/level1/grids.json";
+    private final String binPath = "Data/sample-data/level1/bins.json"; 
     private final Gson gson = new Gson();
 
     // --- 1. Load Shipments ---

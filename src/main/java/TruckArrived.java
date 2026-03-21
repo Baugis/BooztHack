@@ -22,8 +22,8 @@ public class TruckArrived extends Event {
 
     @Override
     public void execute(Simulation sim) {
-        System.out.printf("[%.0fs] TruckArrived: direction=%s%n",
-                sim.getCurrentTime(), sortingDirection);
+        System.out.printf("[%s] TruckArrived: direction=%s%n",
+                sim.getTimeLabel(), sortingDirection);
 
         List<Shipment> shipped = new ArrayList<>();
 
@@ -35,8 +35,8 @@ public class TruckArrived extends Event {
             }
         }
 
-        System.out.printf("[%.0fs] Truck loaded %d shipments for direction %s%n",
-                sim.getCurrentTime(), shipped.size(), sortingDirection);
+        System.out.printf("[%s] Truck loaded %d shipments for direction %s%n",
+                sim.getTimeLabel(), shipped.size(), sortingDirection);
 
         for (Shipment s : shipped) {
             double dwellTime = s.getShippedAt() - s.getPackedAt();

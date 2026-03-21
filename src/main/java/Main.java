@@ -33,7 +33,7 @@ public class Main {
         System.out.println("Simulation epoch: " + epoch);
 
         // Run for 24 hours (86 400 seconds)
-        double simDurationSeconds = 86_400.0;
+        double simDurationSeconds = 86_400.0*3;
         Simulation sim = new Simulation(simDurationSeconds, epoch);
 
         // -------------------------------------------------------------------------

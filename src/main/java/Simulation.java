@@ -59,15 +59,17 @@ public class Simulation {
         for (Grid grid : grids.values()) {
             for (Shift shift : grid.getShifts()) {
                 LocalTime shiftStart = LocalTime.parse(shift.getStartAt(), TIME_FMT);
-                long offsetSecs = shiftStart.toSecondOfDay() - epochTime.toSecondOfDay();
-                if (offsetSecs < 0) offsetSecs += 86400;
+                long baseOffset = shiftStart.toSecondOfDay() - epochTime.toSecondOfDay();
+                if (baseOffset < 0) baseOffset += 86400;
 
-                schedule(new ShiftOpenEvent(
-                        offsetSecs,
-                        nextSequence(),
-                        grid.getId(),
-                        shift
-                ));
+                // Suplanuoti kiekvienai dienai per visą simuliaciją
+                long simDays = ((long) endTime / 86400) + 2;
+                for (int day = 0; day < simDays; day++) {
+                    double openTime = baseOffset + day * 86400L;
+                    if (openTime <= endTime) {
+                        schedule(new ShiftOpenEvent(openTime, nextSequence(), grid.getId(), shift));
+                    }
+                }
             }
         }
     }
@@ -89,6 +91,14 @@ public class Simulation {
     // -------------------------------------------------------------------------
 
     public double getCurrentTime() { return currentTime; }
+
+    public String getTimeLabel() {
+        long secs = (long) currentTime;
+        long h = secs / 3600;
+        long m = (secs % 3600) / 60;
+        long s = secs % 60;
+        return String.format("%02d:%02d:%02d [%s]", h, m, s, currentTime);
+    }
 
     public Instant getEpochInstant() { return epochInstant; }
 
@@ -177,11 +187,11 @@ public class Simulation {
         return result;
     }
 
-    private List<RouterDTOs.TruckArrivalWrapper.ScheduleEntry> truckSchedules = new ArrayList<>();
+    //private List<RouterDTOs.TruckArrivalWrapper.ScheduleEntry> truckSchedules = new ArrayList<>();
     public RouterDTOs.TruckArrivalWrapper getTruckScheduleWrapper() {
         return new RouterDTOs.TruckArrivalWrapper();
     }
     public void setTruckSchedules(List<RouterDTOs.TruckArrivalWrapper.ScheduleEntry> schedules) {
-    this.truckSchedules = schedules;
+    //this.truckSchedules = schedules;
 }
 }
