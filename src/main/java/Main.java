@@ -20,7 +20,7 @@ public class Main {
         }
 
         // *** ČIA BUVO PROBLEMA — epoch nebuvo apibrėžtas ***
-        Instant epoch = Instant.parse("2026-03-02T00:00:00Z"); // Pirmadienis!
+        Instant epoch = Instant.parse("2026-03-01T00:00:00Z");
 
         System.out.println("Simulation epoch: " + epoch);
 
