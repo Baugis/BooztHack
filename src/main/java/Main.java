@@ -40,7 +40,7 @@ public class Main {
 
         System.out.println("Simulation epoch: " + epoch);
 
-        double simDurationSeconds = 86_400.0*3;
+        double simDurationSeconds = 86_400.0*5;
         Simulation sim = new Simulation(simDurationSeconds, epoch);
 
         // -------------------------------------------------------------------------
