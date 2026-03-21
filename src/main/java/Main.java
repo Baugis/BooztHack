@@ -18,9 +18,9 @@ public class Main {
         // 1. Load data from JSON files
         // -------------------------------------------------------------------------
         DataLoader loader = new DataLoader(
-                "Data/sample-data/level8/shipments.json",
-                "Data/sample-data/level8/grids.json",
-                "Data/sample-data/level8/bins.json"
+                "Data/sample-data/level9/shipments9.json",
+                "Data/sample-data/level9/grids9.json",
+                "Data/sample-data/level9/bins9.json"
         );
 
         List<Shipment> shipments = loader.loadShipmentsJson();
@@ -32,7 +32,7 @@ public class Main {
                 + grids.size() + " grids");
 
         if (shipments.isEmpty() || grids.isEmpty()) {
-            System.err.println("No data loaded — check that Data/sample-data/level7/*.json files exist.");
+            System.err.println("No data loaded — check that Data/sample-data/leveln/*.json files exist.");
             return;
         }
 
@@ -44,7 +44,7 @@ public class Main {
 
         System.out.println("Simulation epoch: " + epoch);
 
-        double simDurationSeconds = 86_400.0*5;
+        double simDurationSeconds = 86_400.0*4;
         Simulation sim = new Simulation(simDurationSeconds, epoch);
 
         // -------------------------------------------------------------------------
@@ -88,7 +88,7 @@ public class Main {
         // 7. Load truck schedules from params.json and schedule TruckArrived events.
         //    Only schedules trucks that run on the epoch's day of week.
         // -------------------------------------------------------------------------
-        ParamsLoader paramsLoader = new ParamsLoader("Data/sample-data/level8/params.json");
+        ParamsLoader paramsLoader = new ParamsLoader("Data/sample-data/level9/params9.json");
         List<TruckSchedule> truckSchedules = paramsLoader.loadTruckSchedules();
         System.out.println("Loaded: " + truckSchedules.size() + " truck schedule(s)");
 

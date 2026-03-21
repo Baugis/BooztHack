@@ -21,9 +21,9 @@ public class DataLoader {
     /** Default constructor — points at level8 sample data. */
     public DataLoader() {
         this(
-                "Data/sample-data/level8/shipments.json",
-                "Data/sample-data/level8/grids.json",
-                "Data/sample-data/level8/bins.json"
+                "Data/sample-data/level9/shipments9.json",
+                "Data/sample-data/level9/grids9.json",
+                "Data/sample-data/level9/bins9.json"
         );
     }
 
