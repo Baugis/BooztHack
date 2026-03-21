@@ -1,39 +1,25 @@
-import java.time.Instant;
-import java.util.ArrayList;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 
 public class Main {
+    public static void main(String[] args){
 
-    public static void main(String[] args) {
-
-        // -------------------------------------------------------------------------
-        // 1. Load data from JSON files
-        // -------------------------------------------------------------------------
         DataLoader loader = new DataLoader();
-
         List<Shipment> shipments = loader.loadShipmentsJson();
-        List<Bin>      bins      = loader.loadBinsJson();
-        List<Grid>     grids     = loader.loadGridsJson();
-
-        System.out.println("Loaded: " + shipments.size() + " shipments, "
-                + bins.size() + " bins, "
-                + grids.size() + " grids");
-
-        if (shipments.isEmpty() || grids.isEmpty()) {
-            System.err.println("No data loaded — check that Data/sample-data/level1/*.json files exist.");
-            return;
-        }
-
-        // -------------------------------------------------------------------------
-        // 2. Determine simulation epoch from the earliest shipment's createdAt
-        //    All event times are measured in seconds from this instant.
-        // -------------------------------------------------------------------------
-        Instant epoch = Instant.parse("2026-03-01T00:00:00Z");
+        List<Bin> bins = loader.loadBinsJson();
+        List<Grid> grids = loader.loadGridsJson();
+        Gson prettyGson = new GsonBuilder().setPrettyPrinting().create();
 
         System.out.println("Simulation epoch: " + epoch);
 
         // Run for 24 hours (86 400 seconds)
-        double simDurationSeconds = 86_400.0*3;
+        double simDurationSeconds = 86_400.0;
         Simulation sim = new Simulation(simDurationSeconds, epoch);
 
         // -------------------------------------------------------------------------
