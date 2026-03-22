@@ -1,8 +1,5 @@
 package com.Warehouse.Simulator.io;
 
-import com.Warehouse.Simulator.engine.*;
-import com.Warehouse.Simulator.engine.events.TruckSchedule;
-
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -10,6 +7,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.Warehouse.Simulator.engine.Simulation;
+import com.Warehouse.Simulator.engine.events.TruckSchedule;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
@@ -68,6 +67,9 @@ public class ParamsLoader {
         /** Level 9 conveyor format: nested object with durations array. */
         @SerializedName("transfersConveyors")
         TransfersConveyorsDto transfersConveyors;
+
+        @SerializedName("gridBinDelivery")
+        GridBinDeliveryDto gridBinDelivery;
     }
 
     /** Wrapper around the list of truck schedule entries. */
@@ -117,6 +119,10 @@ public class ParamsLoader {
          * Note: field name is "duration" in Level 9, not "transferTimeSeconds" as in Level 8.
          */
         int duration;
+    }
+
+    private static class GridBinDeliveryDto {
+        Map<String, Double> deliveryTimes;
     }
 
     // -------------------------------------------------------------------------
@@ -215,6 +221,23 @@ public class ParamsLoader {
         }
 
         return result;
+    }
+
+    // Pridėk čia naują metodą:
+    public Map<String, Double> loadDeliveryTimes() {
+        ParamsDto params = readParams();
+        Map<String, Double> result = new HashMap<>();
+
+        if (params == null || params.gridBinDelivery == null
+                || params.gridBinDelivery.deliveryTimes == null) {
+            System.err.println("Warning: no gridBinDelivery found — using defaults");
+            result.put("AS1", 6.0);
+            result.put("AS2", 4.0);
+            result.put("AS3", 5.0);
+            return result;
+        }
+
+        return params.gridBinDelivery.deliveryTimes;
     }
 
     // -------------------------------------------------------------------------

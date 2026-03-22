@@ -1,11 +1,5 @@
 package com.Warehouse.Simulator;
 
-import com.Warehouse.Simulator.model.*;
-import com.Warehouse.Simulator.engine.*;
-import com.Warehouse.Simulator.engine.events.*;
-import com.Warehouse.Simulator.io.*;
-import com.Warehouse.Simulator.router.*;
-
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -14,6 +8,19 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.List;
 import java.util.Locale;
+
+import com.Warehouse.Simulator.engine.Simulation;
+import com.Warehouse.Simulator.engine.events.ShipmentReceived;
+import com.Warehouse.Simulator.engine.events.ShipmentRouterTriggered;
+import com.Warehouse.Simulator.engine.events.TruckArrived;
+import com.Warehouse.Simulator.engine.events.TruckSchedule;
+import com.Warehouse.Simulator.io.ConfigLoader;
+import com.Warehouse.Simulator.io.DataLoader;
+import com.Warehouse.Simulator.io.ParamsLoader;
+import com.Warehouse.Simulator.model.Bin;
+import com.Warehouse.Simulator.model.Grid;
+import com.Warehouse.Simulator.model.Shipment;
+import com.Warehouse.Simulator.router.RouterCaller;
 
 /**
  * Simulation entry point. Wires together all subsystems and runs the
@@ -134,6 +141,10 @@ public class Main {
         sim.registerConveyors(conveyors);
         System.out.println("Loaded: " + truckSchedules.size() + " truck schedule(s)");
         System.out.println("Loaded: " + conveyors.size() + " conveyor(s)");
+
+        java.util.Map<String, Double> deliveryTimes = paramsLoader.loadDeliveryTimes();
+        sim.registerDeliveryTimes(deliveryTimes);
+        System.out.println("Loaded: " + deliveryTimes.size() + " delivery time(s)");
 
         // Determine the day-of-week name for the epoch date (used for truck scheduling)
         LocalDate epochDate    = epoch.atZone(ZoneOffset.UTC).toLocalDate();

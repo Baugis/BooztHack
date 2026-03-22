@@ -1,7 +1,4 @@
 package com.Warehouse.Simulator.engine;
-import com.Warehouse.Simulator.model.*;
-import com.Warehouse.Simulator.engine.events.*;
-import com.Warehouse.Simulator.router.RouterDTOs;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -11,6 +8,16 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.Warehouse.Simulator.engine.events.Event;
+import com.Warehouse.Simulator.engine.events.ShiftOpenEvent;
+import com.Warehouse.Simulator.engine.events.TruckSchedule;
+import com.Warehouse.Simulator.model.Bin;
+import com.Warehouse.Simulator.model.Grid;
+import com.Warehouse.Simulator.model.Port;
+import com.Warehouse.Simulator.model.Shift;
+import com.Warehouse.Simulator.model.Shipment;
+import com.Warehouse.Simulator.router.RouterDTOs;
 
 /**
  * Central simulation engine.
@@ -72,6 +79,8 @@ public class Simulation {
      * Populated via {@link #registerConveyors(Map)} before the simulation runs.
      */
     private final Map<String, Double> conveyorDelays = new HashMap<>();
+
+    private final Map<String, Double> deliveryTimes = new HashMap<>();
 
     /**
      * Fallback transfer delay used when no conveyor is configured for a
@@ -307,15 +316,11 @@ public class Simulation {
 
     /**
      * Returns the bin delivery delay for the given grid in seconds.
-     *
-     * TODO: replace with per-grid values loaded from params.json
-     *       (spec section 9.3 defines AS1=6s, AS2=4s, AS3=5s).
-     *
      * @param gridId the grid from which a bin is being delivered
      * @return delivery delay in seconds (currently hardcoded to 60s)
      */
     public double getDeliveryDelay(String gridId) {
-        return 60.0;
+        return deliveryTimes.getOrDefault(gridId, 60.0);
     }
 
     /**
@@ -328,6 +333,11 @@ public class Simulation {
     public void registerConveyors(Map<String, Double> delays) {
         conveyorDelays.putAll(delays);
     }
+
+    public void registerDeliveryTimes(Map<String, Double> times) {
+        deliveryTimes.putAll(times);
+    }
+
 
     /**
      * Returns the conveyor transfer time in seconds between two grids.
