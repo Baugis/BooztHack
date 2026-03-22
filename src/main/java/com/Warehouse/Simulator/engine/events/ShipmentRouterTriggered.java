@@ -1,48 +1,76 @@
 package com.Warehouse.Simulator.engine.events;
-
-import java.util.ArrayList;
-import java.util.List;
 import com.Warehouse.Simulator.engine.Simulation;
 import com.Warehouse.Simulator.model.*;
 import com.Warehouse.Simulator.router.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * EVENT: ShipmentRouterTriggered
  *
- * Fires every 900 seconds. Collects all RECEIVED shipments, sends the full
- * warehouse state to the external router process, then applies the returned
- * assignments.
+ * Fires every 900 seconds to drive the routing cycle.
+ * Collects all RECEIVED shipments, sends the full warehouse state to the
+ * external router process, then applies the returned assignments to move
+ * shipments forward in their lifecycle.
  *
- * After applying assignments:
- *   - Single-grid shipments: transition ROUTED -> READY, assigned to a port
- *     (or the grid queue if no port is free).
- *   - Multi-grid shipments (4.4): transition ROUTED -> CONSOLIDATION;
- *     bins from foreign grids are scheduled for transfer via BinTransferCompleted.
- *     The shipment only becomes READY once all transfers finish.
+ * Execution steps:
+ *   1. Roll back any ROUTED/READY shipments still waiting in grid queues
+ *      back to RECEIVED so the router sees a fresh, consistent backlog.
+ *   2. Build the router input: shipment backlog, current bin stock, grid
+ *      shift configs, and truck arrival schedules.
+ *   3. Call the external router subprocess and receive assignments.
+ *   4. Apply each assignment:
+ *        - Single-grid shipment: ROUTED -> READY, assigned to a port
+ *          (or the grid queue if no port is currently available).
+ *        - Multi-grid shipment (consolidation): ROUTED -> CONSOLIDATION;
+ *          foreign bins are scheduled for conveyor transfer via
+ *          BinTransferStarted. The shipment becomes READY only after all
+ *          transfers complete (tracked by pendingTransfers counter).
+ *   5. Schedule the next ShipmentRouterTriggered event 900 seconds later.
  *
- * Per spec 8.2 (Router Rollback): ROUTED shipments still in the grid queue
- * (not yet picked up by a port) are rolled back to RECEIVED before each router run.
+ * Rollback rule (spec 8.2):
+ *   ROUTED and READY shipments that have not yet been picked up by a port
+ *   are reset to RECEIVED before each router run so the router always works
+ *   from a complete, up-to-date picture of unprocessed demand.
  */
 public class ShipmentRouterTriggered extends Event {
 
+    /** How often the router is triggered, in simulation seconds. */
     private static final double ROUTER_INTERVAL_SECONDS = 900.0;
 
-    // Transfer time in seconds per grid hop (placeholder — replace with
-    // per-conveyor config at higher levels).
-    private static final double TRANSFER_DELAY_SECONDS = 300.0;
-
+    /** Subprocess wrapper used to send state to and receive assignments from the router. */
     private final RouterCaller routerCaller;
 
+    /**
+     * Creates a ShipmentRouterTriggered event.
+     *
+     * @param simTime        simulation time at which to trigger the router (seconds from epoch)
+     * @param sequenceNumber tie-breaking sequence number for same-timestamp events
+     * @param routerCaller   the router subprocess wrapper to call
+     */
     public ShipmentRouterTriggered(double simTime, long sequenceNumber, RouterCaller routerCaller) {
         super(simTime, sequenceNumber);
         this.routerCaller = routerCaller;
     }
 
+    /**
+     * Executes the full routing cycle (see class Javadoc for the five steps).
+     *
+     * If the shipment backlog is empty the router call is skipped entirely and
+     * the next trigger is scheduled immediately. If the router subprocess fails,
+     * the error is logged and the cycle continues with the next scheduled trigger.
+     *
+     * @param sim the running simulation context
+     */
     @Override
     public void execute(Simulation sim) {
         System.out.printf("[%s] ShipmentRouterTriggered%n", sim.getTimeLabel());
 
-        // --- Step 1: Rollback ROUTED shipments still waiting in grid queues ---
+        // --- Step 1: Roll back ROUTED/READY shipments still in grid queues ---
+        // Shipments that were routed in a previous cycle but never picked up by
+        // a port are returned to RECEIVED so this run can re-route them with
+        // current stock levels and grid state.
         for (Grid grid : sim.getAllGrids()) {
             List<Shipment> requeue = new ArrayList<>();
             Shipment s;
@@ -51,7 +79,8 @@ public class ShipmentRouterTriggered extends Event {
                         || s.getStatus() == Shipment.ShipmentStatus.READY) {
                     s.rollbackToReceived();
                 } else {
-                    requeue.add(s); // CONSOLIDATION etc — already progressing
+                    // CONSOLIDATION shipments already have transfers in flight — keep them.
+                    requeue.add(s);
                 }
             }
             for (Shipment rs : requeue) {
@@ -63,6 +92,7 @@ public class ShipmentRouterTriggered extends Event {
         RouterCaller.State state = new RouterCaller.State();
         state.now = sim.getCurrentTimestamp();
 
+        // Collect every shipment still in RECEIVED status into the backlog.
         state.shipmentsBacklog = new ArrayList<>();
         for (Shipment shipment : sim.getAllShipments()) {
             if (shipment.getStatus() == Shipment.ShipmentStatus.RECEIVED) {
@@ -76,6 +106,7 @@ public class ShipmentRouterTriggered extends Event {
             }
         }
 
+        // Skip the router call entirely if there is nothing to route.
         if (state.shipmentsBacklog.isEmpty()) {
             System.out.printf("[%s] No shipments to route, skipping router call%n",
                     sim.getTimeLabel());
@@ -83,6 +114,7 @@ public class ShipmentRouterTriggered extends Event {
             return;
         }
 
+        // Collect current bin stock across all grids (only non-empty bins are sent).
         state.stockBins = new ArrayList<>();
         for (Grid grid : sim.getAllGrids()) {
             for (Bin bin : grid.getAllBins()) {
@@ -96,19 +128,20 @@ public class ShipmentRouterTriggered extends Event {
             }
         }
 
-        state.grids                = sim.getRouterGridDtos();
+        state.grids                 = sim.getRouterGridDtos();
         state.truckArrivalSchedules = sim.getTruckScheduleWrapper();
 
-        // --- Step 3: Call the router ---
+        // --- Step 3: Call the external router subprocess ---
         RouterCaller.Response response;
         try {
             response = routerCaller.call(new RouterCaller.RouterInput(state));
-            // Laikinam debug'ui
+
+            // TODO: remove debug logging before production
             String debugJson = new com.google.gson.Gson().toJson(new RouterCaller.RouterInput(state));
             System.err.println("=== ROUTER INPUT ===");
             System.err.println(debugJson);
             System.err.println("===================");
-            ////////////////////
+
         } catch (RouterCaller.RouterException e) {
             System.err.println("Router call failed: " + e.getMessage());
             scheduleNext(sim);
@@ -119,15 +152,17 @@ public class ShipmentRouterTriggered extends Event {
                 sim.getTimeLabel(),
                 response.assignments == null ? 0 : response.assignments.size());
 
-        // --- Step 4: Apply assignments ---
+        // --- Step 4: Apply assignments returned by the router ---
         if (response.assignments != null) {
             for (RouterDTOs.Assignment assignment : response.assignments) {
+
                 Shipment shipment = sim.getShipment(assignment.shipmentId);
                 if (shipment == null) {
                     System.err.println("Router returned unknown shipment ID: " + assignment.shipmentId);
                     continue;
                 }
 
+                // Record the router's decision on the shipment (packing grid, pick list, priority).
                 shipment.applyRouterAssignment(
                         assignment.packingGrid,
                         assignment.picks,
@@ -140,11 +175,13 @@ public class ShipmentRouterTriggered extends Event {
                     continue;
                 }
 
-                // Determine if any picks come from a different grid (consolidation case)
+                // Detect picks whose bin lives in a grid other than the packing grid.
                 List<RouterDTOs.Pick> foreignPicks = findForeignPicks(sim, assignment);
 
                 if (!foreignPicks.isEmpty()) {
-                    // --- 4.4 Consolidation path ---
+                    // --- Consolidation path (spec 4.4) ---
+                    // The shipment cannot start picking until all foreign bins have
+                    // been conveyed to the packing grid.
                     shipment.markAsConsolidation();
                     shipment.setPendingTransfers(foreignPicks.size());
 
@@ -155,48 +192,56 @@ public class ShipmentRouterTriggered extends Event {
                         Bin bin = sim.getBin(pick.binId);
                         if (bin == null) {
                             System.err.println("Foreign pick references unknown bin: " + pick.binId);
-                            shipment.decrementPendingTransfers(); // avoid permanent stall
+                            // Decrement to avoid the shipment stalling permanently
+                            // if a bin can never be found.
+                            shipment.decrementPendingTransfers();
                             continue;
                         }
 
-                        String sourceGrid = bin.getGridId();
-                        bin.markOutside();
+                        String sourceGrid    = bin.getGridId();
+                        double transferDelay = sim.getTransferDelay(sourceGrid, assignment.packingGrid);
 
-                        double arrivalTime = sim.getCurrentTime() + TRANSFER_DELAY_SECONDS;
-                        sim.schedule(new BinTransferCompleted(
-                                arrivalTime,
+                        sim.schedule(new BinTransferStarted(
+                                sim.getCurrentTime(),
                                 sim.nextSequence(),
                                 pick.binId,
                                 sourceGrid,
                                 assignment.packingGrid,
                                 shipment.getId(),
-                                TRANSFER_DELAY_SECONDS
+                                transferDelay
                         ));
 
-                        System.out.printf("[%s] Transfer scheduled: bin=%s %s -> %s%n",
-                                sim.getTimeLabel(), pick.binId, sourceGrid, assignment.packingGrid);
+                        System.out.printf("[%s] Transfer scheduled: bin=%s %s -> %s (delay=%.0fs)%n",
+                                sim.getTimeLabel(), pick.binId, sourceGrid,
+                                assignment.packingGrid, transferDelay);
                     }
-                    // Shipment will be port-assigned inside BinTransferCompleted
-                    // once allTransfersDone() becomes true.
+                    // Port assignment is deferred — BinTransferCompleted will
+                    // assign the shipment to a port once allTransfersDone() is true.
 
                 } else {
-                    // --- Normal single-grid path: ROUTED -> READY -> port ---
+                    // --- Normal single-grid path ---
+                    // All bins are already in the packing grid; go straight to READY.
                     shipment.markAsReady();
                     assignToPortOrQueue(sim, targetGrid, shipment);
                 }
             }
         }
 
-        // --- Step 5: Schedule next router run ---
+        // --- Step 5: Schedule the next router run ---
         scheduleNext(sim);
     }
 
     /**
-     * Returns picks whose bin currently lives in a grid other than the
-     * shipment's packingGrid. These need a conveyor transfer before picking.
+     * Returns the subset of picks in the assignment whose bin currently resides
+     * in a grid other than the shipment's designated packing grid.
+     * These bins must be conveyed to the packing grid before picking can start.
+     *
+     * @param sim        simulation context used to look up current bin locations
+     * @param assignment the router assignment to inspect
+     * @return list of picks that require an inter-grid transfer; empty if none
      */
     private List<RouterDTOs.Pick> findForeignPicks(Simulation sim,
-                                                     RouterDTOs.Assignment assignment) {
+                                                   RouterDTOs.Assignment assignment) {
         List<RouterDTOs.Pick> foreign = new ArrayList<>();
         if (assignment.picks == null) return foreign;
         for (RouterDTOs.Pick pick : assignment.picks) {
@@ -209,8 +254,17 @@ public class ShipmentRouterTriggered extends Event {
     }
 
     /**
-     * Tries to assign the shipment directly to an idle/available port.
-     * Falls back to the grid queue if no port can take it right now.
+     * Attempts to assign a READY shipment directly to the best available port
+     * on the target grid. If no port can accept the shipment right now (all
+     * full, closed, or incompatible), the shipment is placed at the back of
+     * the grid queue to wait for a port to free up.
+     *
+     * If a suitable IDLE port is found, the port immediately starts work and
+     * the first bin is requested.
+     *
+     * @param sim      simulation context
+     * @param grid     the packing grid to assign the shipment to
+     * @param shipment the READY shipment to assign
      */
     private void assignToPortOrQueue(Simulation sim, Grid grid, Shipment shipment) {
         Port port = grid.findBestPortFor(shipment);
@@ -226,6 +280,8 @@ public class ShipmentRouterTriggered extends Event {
         System.out.printf("[%s] %s assigned to port %s%n",
                 sim.getTimeLabel(), shipment.getId(), port.getId());
 
+        // If the port is idle it can start immediately; otherwise the shipment
+        // waits in the port queue until the current shipment finishes.
         if (port.getStatus() == Port.Status.IDLE) {
             Shipment next = port.startNextShipment();
             if (next != null) {
@@ -234,6 +290,17 @@ public class ShipmentRouterTriggered extends Event {
         }
     }
 
+    /**
+     * Requests the next bin in the shipment's pick list from the grid conveyor.
+     * Marks the bin as OUTSIDE (in transit) and schedules a BinArrivedAtPort
+     * event after the grid's delivery delay.
+     *
+     * Does nothing if the shipment has no more picks or the bin cannot be found.
+     *
+     * @param sim      simulation context
+     * @param port     the port that will receive the bin
+     * @param shipment the shipment whose next pick should be fetched
+     */
     private void requestNextBin(Simulation sim, Port port, Shipment shipment) {
         RouterDTOs.Pick pick = shipment.nextPick();
         if (pick == null) return;
@@ -244,6 +311,7 @@ public class ShipmentRouterTriggered extends Event {
             return;
         }
 
+        // Mark the bin as outside so no other port can reserve it while in transit.
         bin.markOutside();
 
         double deliveryDelay = sim.getDeliveryDelay(shipment.getPackingGrid());
@@ -262,6 +330,12 @@ public class ShipmentRouterTriggered extends Event {
                 sim.getTimeLabel(), pick.binId, port.getId(), deliveryDelay);
     }
 
+    /**
+     * Schedules the next ShipmentRouterTriggered event exactly
+     * ROUTER_INTERVAL_SECONDS (900s) after the current simulation time.
+     *
+     * @param sim simulation context used to schedule the event
+     */
     private void scheduleNext(Simulation sim) {
         sim.schedule(new ShipmentRouterTriggered(
                 sim.getCurrentTime() + ROUTER_INTERVAL_SECONDS,
