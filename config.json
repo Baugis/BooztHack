@@ -1,5 +1,5 @@
 {
-  "simulationDays": 4,
+  "simulationDays": 2,
   "epochDate": "2026-03-01T00:00:00Z",
   "dataDir": "Data/sample-data/level9",
   "files": {

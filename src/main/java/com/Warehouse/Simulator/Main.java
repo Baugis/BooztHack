@@ -50,8 +50,9 @@ public class Main {
         // -------------------------------------------------------------------------
         // 0. Load config
         // -------------------------------------------------------------------------
-        ConfigLoader cfg = new ConfigLoader("config.json");
-
+        String workingDir = System.getProperty("user.dir");
+        System.out.println("Working dir: " + workingDir);
+        ConfigLoader cfg = new ConfigLoader(workingDir + "/config.json");
         // -------------------------------------------------------------------------
         // 1. Load data from JSON files
         // -------------------------------------------------------------------------
