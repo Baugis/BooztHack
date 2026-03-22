@@ -1,9 +1,9 @@
 package com.Warehouse.Simulator.engine.events;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.Queue;
+import com.Warehouse.Simulator.engine.Simulation;
+import com.Warehouse.Simulator.model.Bin;
+import com.Warehouse.Simulator.model.Grid;
+import com.Warehouse.Simulator.model.Shipment;
 
 /**
  * EVENT: BinArrivedAtPort
