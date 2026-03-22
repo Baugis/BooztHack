@@ -79,6 +79,7 @@ public class Simulation {
      * Populated via {@link #registerConveyors(Map)} before the simulation runs.
      */
     private final Map<String, Double> conveyorDelays = new HashMap<>();
+    private final List<TruckSchedule> truckSchedules = new ArrayList<>();
 
     private final Map<String, Double> deliveryTimes = new HashMap<>();
 
@@ -333,6 +334,9 @@ public class Simulation {
     public void registerConveyors(Map<String, Double> delays) {
         conveyorDelays.putAll(delays);
     }
+    public void registerTruckSchedules(List<TruckSchedule> schedules) {
+        truckSchedules.addAll(schedules);
+    }
 
     public void registerDeliveryTimes(Map<String, Double> times) {
         deliveryTimes.putAll(times);
@@ -390,15 +394,15 @@ public class Simulation {
         return result;
     }
 
-    /**
-     * Returns an empty truck-arrival wrapper.
-     *
-     * TODO: populate with actual {@link TruckSchedule} data so the router
-     *       can factor truck deadlines into its prioritisation logic.
-     *
-     * @return an empty {@link RouterDTOs.TruckArrivalWrapper}
-     */
     public RouterDTOs.TruckArrivalWrapper getTruckScheduleWrapper() {
-        return new RouterDTOs.TruckArrivalWrapper();
+        RouterDTOs.TruckArrivalWrapper wrapper = new RouterDTOs.TruckArrivalWrapper();
+        for (TruckSchedule ts : truckSchedules) {
+            RouterDTOs.TruckScheduleDto dto = new RouterDTOs.TruckScheduleDto();
+            dto.sortingDirection = ts.sortingDirection;
+            dto.pullTimes        = new ArrayList<>(ts.pullTimes);
+            dto.weekdays         = new ArrayList<>(ts.weekdays);
+            wrapper.schedules.add(dto);
+        }
+        return wrapper;
     }
 }

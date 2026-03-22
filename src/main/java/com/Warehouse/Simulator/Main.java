@@ -140,6 +140,7 @@ public class Main {
         java.util.Map<String, Double> conveyors   = paramsLoader.loadConveyors();
 
         sim.registerConveyors(conveyors);
+        sim.registerTruckSchedules(truckSchedules);
         System.out.println("Loaded: " + truckSchedules.size() + " truck schedule(s)");
         System.out.println("Loaded: " + conveyors.size() + " conveyor(s)");
 
