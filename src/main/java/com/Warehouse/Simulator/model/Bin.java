@@ -1,3 +1,5 @@
+package com.Warehouse.Simulator.model;
+
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
