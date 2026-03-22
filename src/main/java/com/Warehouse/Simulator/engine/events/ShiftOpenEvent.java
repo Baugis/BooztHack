@@ -1,33 +1,65 @@
 package com.Warehouse.Simulator.engine.events;
 
+import com.Warehouse.Simulator.engine.Simulation;
+import com.Warehouse.Simulator.model.*;
+import com.Warehouse.Simulator.router.RouterDTOs;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.Set;
-import com.Warehouse.Simulator.engine.Simulation;
-import com.Warehouse.Simulator.model.*;
-import com.Warehouse.Simulator.router.RouterDTOs;
+
 /**
  * EVENT: ShiftOpenEvent
  *
  * Fires at the start time of a shift for a grid.
- * Opens all ports listed in the shift's portConfig, then schedules:
- *   - A ShiftCloseEvent at the shift end time.
- *   - A BreakStartEvent for each break window inside the shift.
+ * Responsible for bringing the grid's ports online and scheduling all
+ * time-bound sub-events that belong to this shift window.
+ *
+ * On execution:
+ *   1. Opens every port listed in the shift's portConfig. Ports that do not
+ *      yet exist in the grid are created on the fly from the config entry.
+ *      Ports already open (e.g. from an overlapping prior shift) are left
+ *      unchanged.
+ *   2. If a newly opened port is immediately IDLE and the grid queue already
+ *      holds waiting shipments, one shipment is pulled and started right away.
+ *   3. Schedules a BreakStartEvent and BreakEndEvent for each break window
+ *      defined within this shift.
+ *   4. Schedules a ShiftCloseEvent at the shift's end time.
+ *
+ * Break and close times are computed as offsets from the shift start so that
+ * midnight-spanning shifts are handled correctly.
  */
 public class ShiftOpenEvent extends Event {
 
+    /** Formatter used to parse "HH:mm" shift and break time strings. */
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
+    /** ID of the grid whose ports this event opens. */
     private final String gridId;
+
+    /** The shift definition containing port configs, break windows, and end time. */
     private final Shift shift;
 
+    /**
+     * Creates a ShiftOpenEvent.
+     *
+     * @param simTime        simulation time at which the shift starts (seconds from epoch)
+     * @param sequenceNumber tie-breaking sequence number for same-timestamp events
+     * @param gridId         ID of the grid whose ports should be opened
+     * @param shift          shift definition to apply
+     */
     public ShiftOpenEvent(double simTime, long sequenceNumber, String gridId, Shift shift) {
         super(simTime, sequenceNumber);
         this.gridId = gridId;
         this.shift  = shift;
     }
 
+    /**
+     * Opens ports, drains any waiting shipments into newly idle ports, and
+     * schedules all break and close events for this shift (see class Javadoc).
+     *
+     * @param sim the running simulation context
+     */
     @Override
     public void execute(Simulation sim) {
         Grid grid = sim.getGrid(gridId);
@@ -36,61 +68,67 @@ public class ShiftOpenEvent extends Event {
             return;
         }
 
-            System.out.printf("[%s] ShiftOpen: grid=%s shift=%s-%s%n",
+        System.out.printf("[%s] ShiftOpen: grid=%s shift=%s-%s%n",
                 sim.getTimeLabel(), gridId, shift.getStartAt(), shift.getEndAt());
 
-        // Open (or create) each port listed in this shift's config
-            for (Shift.PortConfig cfg : shift.portConfig) {
-                String portId = cfg.portId != null ? cfg.portId : "port-" + cfg.portIndex;
-                Port port = grid.getPort(portId);
-                if (port == null) {
-        // Port doesn't exist yet — create it now from the config
-                    Set<String> flags = new HashSet<>(cfg.handlingFlags);
-                    port = new Port(portId, gridId, flags);
-                    grid.addPort(port);
-            }
-    // Only open if currently CLOSED (may already be open from a prior shift)
-            if (port.getStatus() == Port.Status.CLOSED) {
-                port.open();
-                System.out.printf("[%s] Port %s opened%n", sim.getTimeLabel(), portId);
+        // --- Step 1: Open (or lazily create) each port in the shift config ---
+        for (Shift.PortConfig cfg : shift.portConfig) {
+            Port port = grid.getPort(cfg.portId);
+            if (port == null) {
+                // First time this port appears — create it from the shift config.
+                Set<String> flags = new HashSet<>(cfg.handlingFlags);
+                port = new Port(cfg.portId, gridId, flags);
+                grid.addPort(port);
             }
 
-    // If an idle port has shipments waiting in the grid queue, pull one now
+            // Guard: skip ports that are already open from a prior overlapping shift.
+            if (port.getStatus() == Port.Status.CLOSED) {
+                port.open();
+                System.out.printf("[%s] Port %s opened%n", sim.getTimeLabel(), cfg.portId);
+            }
+
+            // --- Step 2: Immediately assign a waiting shipment if the port is idle ---
             if (port.getStatus() == Port.Status.IDLE && grid.hasQueuedShipments()) {
                 tryAssignFromGridQueue(sim, grid, port);
             }
         }
 
-        // Schedule breaks
-        LocalTime shiftStart = LocalTime.parse(shift.getStartAt(), TIME_FMT);
-        double shiftStartSec = sim.getCurrentTime(); // this IS the shift start moment
+        // --- Step 3: Schedule break events ---
+        // Offsets are computed relative to the shift start so that shifts
+        // spanning midnight resolve to the correct absolute sim times.
+        LocalTime shiftStart    = LocalTime.parse(shift.getStartAt(), TIME_FMT);
+        double    shiftStartSec = sim.getCurrentTime(); // this event fires exactly at shift start
 
         for (Shift.BreakWindow brk : shift.getBreaks()) {
             LocalTime breakStart = LocalTime.parse(brk.startAt, TIME_FMT);
             LocalTime breakEnd   = LocalTime.parse(brk.endAt,   TIME_FMT);
 
-            double breakStartOffset = secondsBetween(shiftStart, breakStart);
-            double breakEndOffset   = secondsBetween(shiftStart, breakEnd);
+            double breakStartTime = shiftStartSec + secondsBetween(shiftStart, breakStart);
+            double breakEndTime   = shiftStartSec + secondsBetween(shiftStart, breakEnd);
 
-            double breakStartTime = shiftStartSec + breakStartOffset;
-            double breakEndTime   = shiftStartSec + breakEndOffset;
-
-            long breakStartSeq = sim.nextSequence();
-            long breakEndSeq   = sim.nextSequence();
-            sim.schedule(new BreakStartEvent(breakStartTime, breakStartSeq, gridId, shift, brk));
-            sim.schedule(new BreakEndEvent(breakEndTime,     breakEndSeq,   gridId, shift, brk));
+            sim.schedule(new BreakStartEvent(breakStartTime, sim.nextSequence(), gridId, shift, brk));
+            sim.schedule(new BreakEndEvent(breakEndTime,     sim.nextSequence(), gridId, shift, brk));
         }
 
-        // Schedule shift close
-        LocalTime shiftEnd = LocalTime.parse(shift.getEndAt(), TIME_FMT);
-        double shiftEndOffset = secondsBetween(shiftStart, shiftEnd);
-        double closeTime = shiftStartSec + shiftEndOffset;
+        // --- Step 4: Schedule shift close ---
+        LocalTime shiftEnd    = LocalTime.parse(shift.getEndAt(), TIME_FMT);
+        double    closeTime   = shiftStartSec + secondsBetween(shiftStart, shiftEnd);
         sim.schedule(new ShiftCloseEvent(closeTime, sim.nextSequence(), gridId, shift));
     }
 
+    /**
+     * Attempts to pull the next shipment from the grid queue and start it on
+     * the given port. If the shipment is incompatible with the port or the port
+     * has no queue capacity, the shipment is returned to the back of the grid queue.
+     *
+     * @param sim  simulation context
+     * @param grid the grid whose queue to drain
+     * @param port the idle port to assign work to
+     */
     private void tryAssignFromGridQueue(Simulation sim, Grid grid, Port port) {
         Shipment next = grid.dequeueShipment();
         if (next == null) return;
+
         if (port.canHandle(next) && port.hasQueueCapacity()) {
             port.enqueue(next);
             Shipment started = port.startNextShipment();
@@ -98,16 +136,32 @@ public class ShiftOpenEvent extends Event {
                 requestFirstBin(sim, port, started);
             }
         } else {
-            grid.enqueueShipment(next); // put it back if incompatible
+            // Shipment is incompatible with this port — put it back for the next candidate.
+            grid.enqueueShipment(next);
         }
     }
 
+    /**
+     * Requests the first bin in the shipment's pick list from the grid conveyor.
+     * Marks the bin as OUTSIDE (in transit) and schedules a BinArrivedAtPort
+     * event after the grid's delivery delay.
+     *
+     * Does nothing if the shipment has no picks or the bin cannot be found.
+     *
+     * @param sim      simulation context
+     * @param port     the port that will receive the bin
+     * @param shipment the shipment whose first pick should be fetched
+     */
     private void requestFirstBin(Simulation sim, Port port, Shipment shipment) {
         RouterDTOs.Pick pick = shipment.nextPick();
         if (pick == null) return;
+
         Bin bin = sim.getBin(pick.binId);
         if (bin == null) return;
+
+        // Mark as outside so no other port can reserve the bin while it is in transit.
         bin.markOutside();
+
         double delay = sim.getDeliveryDelay(shipment.getPackingGrid());
         sim.schedule(new BinArrivedAtPort(
                 sim.getCurrentTime() + delay,
@@ -119,10 +173,18 @@ public class ShiftOpenEvent extends Event {
         ));
     }
 
-    /** Returns the wall-clock seconds between two LocalTime values (handles midnight wrap). */
+    /**
+     * Returns the number of wall-clock seconds from {@code from} to {@code to}.
+     * If {@code to} is earlier in the day than {@code from} (i.e. the interval
+     * crosses midnight), 86400 seconds are added to produce a positive duration.
+     *
+     * @param from the start time
+     * @param to   the end time
+     * @return non-negative seconds between the two times, wrapping at midnight
+     */
     public static long secondsBetween(LocalTime from, LocalTime to) {
         long secs = to.toSecondOfDay() - from.toSecondOfDay();
-        if (secs < 0) secs += 86400; // next-day wrap
+        if (secs < 0) secs += 86_400; // interval crosses midnight
         return secs;
     }
 }
