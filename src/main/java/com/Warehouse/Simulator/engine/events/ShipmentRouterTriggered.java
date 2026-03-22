@@ -136,12 +136,6 @@ public class ShipmentRouterTriggered extends Event {
         try {
             response = routerCaller.call(new RouterCaller.RouterInput(state));
 
-            // TODO: remove debug logging before production
-            String debugJson = new com.google.gson.Gson().toJson(new RouterCaller.RouterInput(state));
-            System.err.println("=== ROUTER INPUT ===");
-            System.err.println(debugJson);
-            System.err.println("===================");
-
         } catch (RouterCaller.RouterException e) {
             System.err.println("Router call failed: " + e.getMessage());
             scheduleNext(sim);
