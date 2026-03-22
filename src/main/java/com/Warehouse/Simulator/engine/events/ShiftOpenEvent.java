@@ -111,6 +111,13 @@ public class ShiftOpenEvent extends Event {
         LocalTime shiftEnd    = LocalTime.parse(shift.getEndAt(), TIME_FMT);
         double    closeTime   = shiftStartSec + secondsBetween(shiftStart, shiftEnd);
         sim.schedule(new ShiftCloseEvent(closeTime, sim.nextSequence(), gridId, shift));
+        java.util.Map<String, Object> logData = new java.util.HashMap<>();
+
+        logData.put("gridId", gridId);
+        logData.put("shiftStart", shift.getStartAt());
+        logData.put("shiftEnd", shift.getEndAt());
+
+        sim.logEvent("ShiftOpen", logData);
     }
 
     /**

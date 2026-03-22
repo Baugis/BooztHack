@@ -97,6 +97,9 @@ public class BreakEndEvent extends Event {
                 }
             }
         }
+        java.util.Map<String, Object> logData = new java.util.HashMap<>();
+        logData.put("gridId", gridId);
+        sim.logEvent("BreakEnd", logData);
     }
 
     /**

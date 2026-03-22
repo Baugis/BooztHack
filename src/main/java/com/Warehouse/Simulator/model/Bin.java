@@ -14,7 +14,6 @@ import com.google.gson.annotations.SerializedName;
  * operational status. When a bin is already reserved, additional ports can
  * queue for it via a FCFS (First-Come-First-Served) waiting list.
  *
- * <p>See README → "Stock Bins" for the full data contract.
  */
 public class Bin {
 

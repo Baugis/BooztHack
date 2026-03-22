@@ -54,10 +54,6 @@ public class TruckSchedule {
         this.weekdays         = weekdays;
     }
 
-    /**
-     * Returns a concise human-readable description of this schedule,
-     * useful for logging and debugging.
-     */
     @Override
     public String toString() {
         return "TruckSchedule{dir=" + sortingDirection

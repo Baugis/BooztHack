@@ -41,5 +41,12 @@ public class ShipmentReceived extends Event {
         sim.addShipment(shipment);
         System.out.printf("[%s] ShipmentReceived: %s%n",
                 sim.getTimeLabel(), shipment.getId());
+    
+        java.util.Map<String, Object> logData = new java.util.HashMap<>();
+        logData.put("shipmentId", shipment.getId());
+        logData.put("handlingFlags", shipment.getHandlingFlags());
+        logData.put("sortingDirection", shipment.getSortingDirection());
+
+        sim.logEvent("ShipmentReceived", logData);
     }
 }

@@ -83,5 +83,8 @@ public class ShiftCloseEvent extends Event {
                         sim.getTimeLabel(), cfg.portId);
             }
         }
+        java.util.Map<String, Object> logData = new java.util.HashMap<>();
+        logData.put("gridId", gridId);
+        sim.logEvent("ShiftClose", logData);
     }
 }

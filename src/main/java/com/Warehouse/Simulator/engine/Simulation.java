@@ -73,6 +73,8 @@ public class Simulation {
     private final List<TruckSchedule> truckSchedules = new ArrayList<>();
 
     private final Map<String, Double> deliveryTimes = new HashMap<>();
+    private com.Warehouse.Simulator.io.EventLogger eventLogger;
+
 
     /**
      * Fallback transfer delay used when no conveyor is configured for a
@@ -166,6 +168,16 @@ public class Simulation {
     /** Returns the next monotonically increasing sequence number for event tie-breaking. */
     public long nextSequence() {
         return eventQueue.nextSequence();
+    }
+
+    public void setEventLogger(com.Warehouse.Simulator.io.EventLogger logger) {
+        this.eventLogger = logger;
+    }
+
+    public void logEvent(String eventName, Object dataPayload) {
+        if (eventLogger != null) {
+            eventLogger.log(currentTime, getCurrentTimestamp(), eventName, dataPayload);
+        }
     }
 
     /** Returns the current simulation clock value in seconds from epoch. */

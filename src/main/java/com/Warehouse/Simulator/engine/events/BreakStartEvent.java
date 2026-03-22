@@ -94,5 +94,10 @@ public class BreakStartEvent extends Event {
                         sim.getTimeLabel(), cfg.portId);
             }
         }
+        java.util.Map<String, Object> logData = new java.util.HashMap<>();
+        logData.put("gridId", gridId);
+        logData.put("breakStart", breakWindow.startAt);
+        logData.put("breakEnd", breakWindow.endAt);
+        sim.logEvent("BreakStart", logData);
     }
 }

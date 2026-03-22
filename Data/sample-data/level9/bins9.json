@@ -4,7 +4,7 @@
     "currentGridLocation": "AS1",
     "itemsInBin": {
       "ean-1": {
-        "quantity": 100
+        "quantity": 1000
       }
     }
   },
@@ -13,7 +13,7 @@
     "currentGridLocation": "AS2",
     "itemsInBin": {
       "ean-2": {
-        "quantity": 100
+        "quantity": 1000
       }
     }
   },
@@ -22,7 +22,7 @@
     "currentGridLocation": "AS1",
     "itemsInBin": {
       "ean-3": {
-        "quantity": 100
+        "quantity": 1000
       }
     }
   },
@@ -31,8 +31,28 @@
     "currentGridLocation": "AS2",
     "itemsInBin": {
       "ean-4": {
-        "quantity": 100
+        "quantity": 1000
       }
     }
+  },
+  {
+    "id": "empty-bin-as1-1",
+    "currentGridLocation": "AS1",
+    "itemsInBin": {}
+  },
+  {
+    "id": "empty-bin-as1-2",
+    "currentGridLocation": "AS1",
+    "itemsInBin": {}
+  },
+  {
+    "id": "empty-bin-as2-1",
+    "currentGridLocation": "AS2",
+    "itemsInBin": {}
+  },
+  {
+    "id": "empty-bin-as2-2",
+    "currentGridLocation": "AS2",
+    "itemsInBin": {}
   }
 ]

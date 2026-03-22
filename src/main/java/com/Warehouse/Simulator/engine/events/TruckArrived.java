@@ -102,5 +102,16 @@ public class TruckArrived extends Event {
             double dwellTime = s.getShippedAt() - s.getPackedAt();
             System.out.printf("       Shipped: %s (dwell=%.0fs)%n", s.getId(), dwellTime);
         }
+        
+        java.util.Map<String, Object> logData = new java.util.HashMap<>();
+        logData.put("sortingDirection", sortingDirection);
+        logData.put("shippedCount", shipped.size());
+        logData.put("onTime", onTime);
+        logData.put("late", late);
+        java.util.List<String> shippedIds = new java.util.ArrayList<>();
+        for (Shipment s : shipped) shippedIds.add(s.getId());
+        logData.put("shippedShipments", shippedIds);
+
+sim.logEvent("TruckArrived", logData);
     }
 }

@@ -201,6 +201,10 @@ public class ShipmentRouterTriggered extends Event {
         }
 
         scheduleNext(sim);
+        java.util.Map<String, Object> logData = new java.util.HashMap<>();
+        int assignmentCount = (response != null && response.assignments != null) ? response.assignments.size() : 0;
+        logData.put("assignmentsCount", assignmentCount);
+        sim.logEvent("ShipmentRouterTriggered", logData);
     }
 
     /**

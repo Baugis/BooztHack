@@ -150,6 +150,13 @@ public class BinPickCompleted extends Event {
         }
 
         shipment.completeCurrentPick();
+        
+        java.util.Map<String, Object> logData = new java.util.HashMap<>();
+        logData.put("portId", portId);
+        logData.put("shipmentId", shipmentId);
+        logData.put("binId", binId);
+        logData.put("PickDuration", pickDuration); 
+        sim.logEvent("BinPickCompleted", logData);
 
         if (!shipment.allPicksDone()) {
             RouterDTOs.Pick nextPick = shipment.nextPick();
@@ -158,6 +165,13 @@ public class BinPickCompleted extends Event {
         }
 
         shipment.markAsPacked(sim.getCurrentTime());
+        java.util.Map<String, Object> packData = new java.util.HashMap<>();
+        
+        packData.put("shipmentId", shipmentId);
+        packData.put("portId", portId);
+        packData.put("PackingDuration", sim.getCurrentTime() - shipment.getReceivedTime()); 
+        sim.logEvent("ShipmentPacked", packData);
+
         System.out.printf("[%s] PACKED: shipment=%s (pack duration=%.1fs)%n",
                 sim.getTimeLabel(), shipmentId, pickDuration);
 

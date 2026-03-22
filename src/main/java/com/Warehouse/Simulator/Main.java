@@ -77,6 +77,13 @@ public class Main {
         System.out.printf( "Simulation duration: %.0f s (%.1f days)%n",
                 simDurationSeconds, simDurationSeconds / 86_400.0);
 
+        String logFilePath = "simulation.log";
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equals("--eventLogFile") && i + 1 < args.length) {
+                logFilePath = args[i + 1];
+            }
+        }
+
         Simulation sim = new Simulation(simDurationSeconds, epoch);
 
         for (Grid grid : grids) {
@@ -157,7 +164,24 @@ public class Main {
                 0.0, sim.nextSequence(), routerCaller));
 
         System.out.println("\n========== SIMULATION START ==========\n");
-        sim.run();
+
+        try {
+            com.Warehouse.Simulator.io.EventLogger logger = new com.Warehouse.Simulator.io.EventLogger(logFilePath);
+            sim.setEventLogger(logger);
+            System.out.println("Logging events to: " + logFilePath);
+        
+            System.out.println("\n========== SIMULATION START ==========\n");
+            sim.run();
+            System.out.println("\n========== SIMULATION END ==========\n");
+
+            logger.close(); // Don't forget to close it!
+        
+        } catch (java.io.IOException e) {
+            System.err.println("Failed to initialize event logger: " + e.getMessage());
+            return;
+        }
+
+        //sim.run();
         System.out.println("\n========== SIMULATION END ==========\n");
 
         printSummary(sim, truckSchedules, epochDayName, epochDate, simDurationSeconds);

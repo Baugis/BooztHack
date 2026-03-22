@@ -95,5 +95,15 @@ public class BinTransferStarted extends Event {
                 shipmentId,
                 transferDelay
         ));
+        
+        java.util.Map<String, Object> logData = new java.util.HashMap<>();
+        logData.put("binId", binId);
+        logData.put("sourceGrid", sourceGridId);
+        logData.put("destinationGrid", destinationGridId);
+        logData.put("shipmentId", shipmentId);
+        logData.put("TransferDuration", transferDelay);
+        logData.put("ArrivalTime", sim.getCurrentTime() + transferDelay);
+
+        sim.logEvent("BinTransferStarted", logData);
     }
 }

@@ -151,5 +151,14 @@ public class BinArrivedAtPort extends Event {
 
         System.out.printf("[%s] Pick scheduled: %d x %s from bin %s, takes %.1fs%n",
                 sim.getTimeLabel(), qty, ean, binId, pickDuration);
+
+            java.util.Map<String, Object> logData = new java.util.HashMap<>();
+            logData.put("portId", portId);
+            logData.put("shipmentId", shipmentId);
+            logData.put("binId", binId);
+            logData.put("ean", ean);
+            logData.put("qty", qty);
+
+            sim.logEvent("BinArrivedAtPort", logData);
     }
 }

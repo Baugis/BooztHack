@@ -161,6 +161,14 @@ public class BinTransferCompleted extends Event {
         if (!isReturnTransfer) {
             scheduleReturnTransfer(sim, destGrid);
         }
+
+        java.util.Map<String, Object> logData = new java.util.HashMap<>();
+        logData.put("binId", binId);
+        logData.put("sourceGrid", sourceGridId);
+        logData.put("destinationGrid", destinationGridId);
+        logData.put("isReturnTransfer", isReturnTransfer); 
+
+        sim.logEvent("BinTransferCompleted", logData);
     }
 
 
@@ -182,7 +190,7 @@ public class BinTransferCompleted extends Event {
         Bin returnBin = null;
         for (Bin candidate : destGrid.getAllBins()) {
             if (candidate.getBinId().equals(binId)) continue;
-            if (candidate.getStatus() == Bin.Status.AVAILABLE) {
+            if (candidate.getStatus() == Bin.Status.AVAILABLE && candidate.getStock().isEmpty()) {
                 returnBin = candidate;
                 break;
             }
