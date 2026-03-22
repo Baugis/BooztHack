@@ -1,22 +1,39 @@
 package com.Warehouse.Simulator.engine.events;
 
-import com.Warehouse.Simulator.engine.Simulation;
-import com.Warehouse.Simulator.model.*;
-import com.Warehouse.Simulator.router.RouterDTOs;
-
 /**
  * EVENT: BreakEndEvent
  *
- * Fires at the end of a scheduled break window.
- * Re-opens any CLOSED ports from this shift and immediately tries to pull
- * waiting shipments from the grid queue.
+ * Fires at the end of a scheduled break window for a grid's shift.
+ * Re-opens any CLOSED ports and immediately tries to pull waiting shipments
+ * from the grid queue so picking resumes without manual intervention.
+ *
+ * <p>Only ports in {@link Port.Status#CLOSED} state are re-opened. Ports in
+ * {@link Port.Status#PENDING_CLOSE} are still finishing their last pre-break
+ * shipment and are left untouched — they will become IDLE on their own once
+ * that shipment completes.
  */
 public class BreakEndEvent extends Event {
 
+    /** Grid whose ports are coming back from break. */
     private final String gridId;
+
+    /** Shift that owns this break window; used to know which ports to re-open. */
     private final Shift shift;
+
+    /** The specific break window that has just ended. */
     private final Shift.BreakWindow breakWindow;
 
+    // -------------------------------------------------------------------------
+    // Constructor
+    // -------------------------------------------------------------------------
+
+    /**
+     * @param simTime        simulation time at which the break ends
+     * @param sequenceNumber tie-breaker for same-timestamp events
+     * @param gridId         grid whose break is ending
+     * @param shift          shift that scheduled this break
+     * @param breakWindow    break window that has just finished
+     */
     public BreakEndEvent(double simTime, long sequenceNumber,
                          String gridId, Shift shift, Shift.BreakWindow breakWindow) {
         super(simTime, sequenceNumber);
@@ -25,6 +42,25 @@ public class BreakEndEvent extends Event {
         this.breakWindow = breakWindow;
     }
 
+    // -------------------------------------------------------------------------
+    // Event execution
+    // -------------------------------------------------------------------------
+
+    /**
+     * Re-opens CLOSED ports and kicks off the next queued shipment on each.
+     *
+     * <p>For every port listed in the shift's {@link Shift#portConfig}:
+     * <ul>
+     *   <li>If {@link Port.Status#CLOSED} → open the port, then attempt to
+     *       dequeue and start one shipment from the grid queue.</li>
+     *   <li>If the dequeued shipment cannot be handled by this port (flag
+     *       mismatch or capacity full), it is re-enqueued so it isn't lost.</li>
+     *   <li>If {@link Port.Status#PENDING_CLOSE} or any other status → skip;
+     *       those ports manage their own lifecycle.</li>
+     * </ul>
+     *
+     * @param sim the running {@link Simulation} instance
+     */
     @Override
     public void execute(Simulation sim) {
         Grid grid = sim.getGrid(gridId);
@@ -40,38 +76,57 @@ public class BreakEndEvent extends Event {
             Port port = grid.getPort(cfg.portId);
             if (port == null) continue;
 
-            // Only re-open ports that are actually CLOSED (PENDING_CLOSE ports
-            // are still finishing their last shipment from before the break)
-            if (port.getStatus() == Port.Status.CLOSED) {
-                port.open();
-                System.out.printf("[%s] Port %s reopened after break%n",
-                        sim.getTimeLabel(), cfg.portId);
+            // PENDING_CLOSE ports are still finishing a shipment started before
+            // the break — leave them alone; they become IDLE naturally.
+            if (port.getStatus() != Port.Status.CLOSED) continue;
 
-                // Pull the next waiting shipment if any
-                if (grid.hasQueuedShipments()) {
-                    Shipment next = grid.dequeueShipment();
-                    if (next != null) {
-                        if (port.canHandle(next) && port.hasQueueCapacity()) {
-                            port.enqueue(next);
-                            Shipment started = port.startNextShipment();
-                            if (started != null) {
-                                requestFirstBin(sim, port, started);
-                            }
-                        } else {
-                            grid.enqueueShipment(next);
+            port.open();
+            System.out.printf("[%s] Port %s reopened after break%n",
+                    sim.getTimeLabel(), cfg.portId);
+
+            // Attempt to pull the next waiting shipment from the grid queue.
+            // If the port can't handle it (flag mismatch or full), put it back
+            // so another port or a later event can claim it.
+            if (grid.hasQueuedShipments()) {
+                Shipment next = grid.dequeueShipment();
+                if (next != null) {
+                    if (port.canHandle(next) && port.hasQueueCapacity()) {
+                        port.enqueue(next);
+                        Shipment started = port.startNextShipment();
+                        if (started != null) {
+                            requestFirstBin(sim, port, started);
                         }
+                    } else {
+                        grid.enqueueShipment(next);
                     }
                 }
             }
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Schedules the first {@link BinArrivedAtPort} event for a newly started shipment.
+     *
+     * <p>Marks the bin as {@link Bin.Status#OUTSIDE} immediately (in transit) and
+     * fires the arrival after the grid's configured delivery delay.
+     *
+     * @param sim      running simulation
+     * @param port     port that will receive the bin
+     * @param shipment shipment whose first pick is being initiated
+     */
     private void requestFirstBin(Simulation sim, Port port, Shipment shipment) {
         RouterDTOs.Pick pick = shipment.nextPick();
         if (pick == null) return;
+
         Bin bin = sim.getBin(pick.binId);
         if (bin == null) return;
+
         bin.markOutside();
+
         double delay = sim.getDeliveryDelay(shipment.getPackingGrid());
         sim.schedule(new BinArrivedAtPort(
                 sim.getCurrentTime() + delay,
