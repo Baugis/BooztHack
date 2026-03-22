@@ -1,8 +1,12 @@
+package com.Warehouse.Simulator.engine.events;
+
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.Set;
-
+import com.Warehouse.Simulator.engine.Simulation;
+import com.Warehouse.Simulator.model.*;
+import com.Warehouse.Simulator.router.RouterDTOs;
 /**
  * EVENT: ShiftOpenEvent
  *

@@ -1,5 +1,10 @@
+package com.Warehouse.Simulator.engine.events;
+
+import com.Warehouse.Simulator.engine.Simulation;
+import com.Warehouse.Simulator.model.Shipment;
 import java.util.ArrayList;
 import java.util.List;
+
 
 /**
  * EVENT: TruckArrived

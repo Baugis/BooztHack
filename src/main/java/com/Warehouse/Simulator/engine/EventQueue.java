@@ -1,4 +1,7 @@
+package com.Warehouse.Simulator.engine;
+
 import java.util.PriorityQueue;
+import com.Warehouse.Simulator.engine.events.Event;
 
 public class EventQueue {
 

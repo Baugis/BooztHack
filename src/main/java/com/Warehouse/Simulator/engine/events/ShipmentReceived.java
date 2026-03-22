@@ -1,4 +1,7 @@
+package com.Warehouse.Simulator.engine.events;
 
+import com.Warehouse.Simulator.engine.Simulation;
+import com.Warehouse.Simulator.model.*;
 /**
  * EVENT: ShipmentReceived
  *

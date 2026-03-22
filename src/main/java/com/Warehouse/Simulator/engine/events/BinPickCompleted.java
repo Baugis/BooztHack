@@ -1,3 +1,9 @@
+package com.Warehouse.Simulator.engine.events;
+
+import com.Warehouse.Simulator.engine.Simulation;
+import com.Warehouse.Simulator.model.*;
+import com.Warehouse.Simulator.router.RouterDTOs;
+
 /**
  * EVENT: BinPickCompleted
  */

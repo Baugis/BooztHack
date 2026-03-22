@@ -1,5 +1,9 @@
+package com.Warehouse.Simulator.engine.events;
+
 // Every event in the simulation extends this.
 // 'implements Comparable' so the priority queue can order events by time.
+import com.Warehouse.Simulator.engine.Simulation;
+
 public abstract class Event implements Comparable<Event> {
 
     // When this event should fire, in seconds from simulation start

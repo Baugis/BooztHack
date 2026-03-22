@@ -1,3 +1,6 @@
+package com.Warehouse.Simulator.model;
+
+import com.Warehouse.Simulator.router.RouterDTOs;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -196,5 +199,5 @@ public class Shipment implements Serializable {
     // Setters
     // -------------------------------------------------------------------------
 
-    protected void setReceivedAt(double simTime) { this.receivedTime = simTime; }
+    public void setReceivedAt(double simTime) { this.receivedTime = simTime; }
 }

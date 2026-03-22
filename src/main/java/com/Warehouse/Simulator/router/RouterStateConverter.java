@@ -1,3 +1,6 @@
+package com.Warehouse.Simulator.router;
+
+import com.Warehouse.Simulator.model.*;
 import com.google.gson.Gson;
 import java.util.List;
 

@@ -1,3 +1,4 @@
+package com.Warehouse.Simulator.io;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -7,8 +8,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.Warehouse.Simulator.model.*;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
+
+
+
 
 public class DataLoader {
     private final String shipmentPath = "Data/sample-data/level1/shipments.json";

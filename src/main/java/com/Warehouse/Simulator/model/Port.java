@@ -1,10 +1,10 @@
+package com.Warehouse.Simulator.model;
 import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
-
 
 /**
  * Atspindi pakavimo stotį, kurioje daiktai yra imami iš Binų ir pakuojami į Siuntas.
