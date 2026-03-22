@@ -7,198 +7,221 @@ import java.util.Queue;
 import java.util.Set;
 
 /**
- * Atspindi pakavimo stotį, kurioje daiktai yra imami iš Binų ir pakuojami į Siuntas.
+ * MODEL: Port
  *
- * Portas priklauso konkrečiam Gridui ir veikia pagal nustatytus Pamainus.
- * Jis turi savo siuntos eilę (max MAX_QUEUE_CAPACITY) ir apdoroja jas po vieną.
+ * Represents a packing station where items are picked from bins and packed
+ * into shipments. Each port belongs to exactly one grid and operates within
+ * defined shift windows.
  *
- * Suderinamumas tikrinamas per HandlingFlags — Portas priims Siuntą tik jei
- * jo vėliavėlių rinkinys apima visas Siuntos reikalaujamas vėliavėles.
+ * A port maintains its own bounded shipment queue (max {@link #MAX_QUEUE_CAPACITY})
+ * and processes shipments one at a time. It only accepts shipments whose
+ * handling flag requirements are a subset of the port's own supported flags.
+ *
+ * Lifecycle:
+ *   Ports start CLOSED and are opened by ShiftOpenEvent at shift start.
+ *   They close (or begin closing) at shift end or break start via ShiftCloseEvent
+ *   and BreakStartEvent respectively.
+ *
+ * Status transitions:
+ *   CLOSED -> IDLE        : open() called at shift/break start
+ *   IDLE   -> BUSY        : startProcessing() when a shipment is assigned
+ *   BUSY   -> IDLE        : finishProcessing() after shipment is packed
+ *   BUSY   -> PENDING_CLOSE : requestClose() while a shipment is in progress
+ *   PENDING_CLOSE -> CLOSED : finishProcessing() after the in-progress shipment completes
+ *   IDLE   -> CLOSED      : requestClose() when no shipment is active
  */
 public class Port {
 
     // -------------------------------------------------------------------------
-    // Konstantos
+    // Constants
     // -------------------------------------------------------------------------
 
-    /** Maksimalus siunčiamų siuntų kiekis porto vietinėje eilėje. */
+    /** Maximum number of shipments allowed in this port's local queue at any time. */
     public static final int MAX_QUEUE_CAPACITY = 20;
 
     // -------------------------------------------------------------------------
-    // Būsenos enum
+    // Status enum
     // -------------------------------------------------------------------------
 
     /**
-     * Gyvavimo ciklo būsenos, kuriose Portas gali būti simuliacijos metu.
+     * All lifecycle states a port can occupy during the simulation.
      */
     public enum Status {
-        /** Portas yra už savo pamainos lango — nepriima ir neapdoroja darbo. */
+
+        /** Outside its shift window — not accepting or processing any work. */
         CLOSED,
 
-        /** Portas yra pamainos metu, neturi aktyvios siuntos ir yra pasiruošęs
-         *  priimti kitą iš savo eilės arba iš grido eilės. */
+        /**
+         * Inside its shift window with no active shipment.
+         * Ready to accept the next shipment from its own queue or the grid queue.
+         */
         IDLE,
 
-        /** Portas aktyviai renka daiktus siuntai. */
+        /** Actively picking items from bins for the current shipment. */
         BUSY,
 
         /**
-         * Porto pamaina (arba pertrauka) baigėsi kol jis buvo BUSY.
-         * Jis baigs dabartinę siuntą ir tada pereis į CLOSED.
-         * Šioje būsenoje naujos siuntos nepriimamos.
+         * The shift (or break) ended while the port was BUSY.
+         * The port will finish the current shipment and then transition to CLOSED.
+         * No new shipments are accepted in this state.
          */
         PENDING_CLOSE
     }
 
     // -------------------------------------------------------------------------
-    // Tapatybė ir konfigūracija
+    // Identity & configuration
     // -------------------------------------------------------------------------
 
-    /** Unikalus porto identifikatorius (pvz. "P1"). */
+    /** Unique port identifier, e.g. "port-AS1-0". */
     private final String portId;
 
-    /** Gridas, kuriam šis portas priklauso. */
+    /** ID of the grid this port belongs to. */
     private final String gridId;
 
     /**
-     * Šio porto palaikomų vėliavėlių rinkinys (pvz. "fragile", "priority").
-     * Siunta gali būti priskirta čia tik jei visos jos reikalaujamos vėliavėlės
-     * yra šiame rinkinyje.
+     * Handling flags this port supports, e.g. {"fragile", "heavy"}.
+     * A shipment can only be assigned here if all of its required flags
+     * are present in this set. Stored as an immutable defensive copy.
      */
     private final Set<String> handlingFlags;
 
     // -------------------------------------------------------------------------
-    // Vykdymo būsena
+    // Runtime state
     // -------------------------------------------------------------------------
 
-    /** Dabartinė gyvavimo ciklo būsena. Portai pradeda CLOSED kol prasideda pamaina. */
+    /** Current lifecycle status. Ports start CLOSED until their shift opens. */
     private Status status;
 
     /**
-     * Tvarkinga siuntų eilė, priskirta šiam portui, laukianti būti surinkta.
-     * Talpa apribota iki MAX_QUEUE_CAPACITY.
+     * Ordered queue of shipments assigned to this port and waiting to be picked.
+     * Capacity is capped at {@link #MAX_QUEUE_CAPACITY}.
      */
     private final Queue<Shipment> shipmentQueue;
 
     /**
-     * Siunta, kurią šiuo metu renka/pakuoja šis portas.
-     * Null kai portas yra IDLE arba CLOSED.
+     * The shipment this port is currently picking and packing.
+     * Null when the port is IDLE or CLOSED.
      */
     private Shipment activeShipment;
 
     // -------------------------------------------------------------------------
-    // Konstruktorius
+    // Constructor
     // -------------------------------------------------------------------------
 
     /**
-     * Sukuria naują Portą CLOSED būsenoje su tuščia eile.
+     * Creates a new Port in CLOSED status with an empty shipment queue.
      *
-     * @param portId        unikalus porto identifikatorius
-     * @param gridId        grido, kuriam priklauso šis portas, ID
-     * @param handlingFlags vėliavėlių rinkinys, kurį šis portas gali apdoroti
+     * @param portId        unique port identifier
+     * @param gridId        ID of the grid this port belongs to
+     * @param handlingFlags set of handling flags this port can process;
+     *                      copied defensively so external changes do not affect the port
      */
     public Port(String portId, String gridId, Set<String> handlingFlags) {
-        this.portId = portId;
-        this.gridId = gridId;
-        this.handlingFlags = Set.copyOf(handlingFlags); // nekintama gynybinė kopija
-        this.status = Status.CLOSED;
-        this.shipmentQueue = new ArrayDeque<>();
+        this.portId         = portId;
+        this.gridId         = gridId;
+        this.handlingFlags  = Set.copyOf(handlingFlags); // immutable defensive copy
+        this.status         = Status.CLOSED;
+        this.shipmentQueue  = new ArrayDeque<>();
         this.activeShipment = null;
     }
 
     // -------------------------------------------------------------------------
-    // Getter'iai
+    // Getters
     // -------------------------------------------------------------------------
 
-    /** @return unikalus porto identifikatorius */
+    /** Returns the unique port identifier. */
     public String getId() { return portId; }
 
-    /** @return grido, kuriam priklauso šis portas, ID */
+    /** Returns the ID of the grid this port belongs to. */
     public String getGridId() { return gridId; }
 
-    /** @return neredaguojamas šio porto vėliavėlių vaizdas */
+    /** Returns an unmodifiable view of the handling flags this port supports. */
     public Set<String> getHandlingFlags() { return handlingFlags; }
 
-    /** @return dabartinė šio porto būsena */
+    /** Returns the current lifecycle status of this port. */
     public Status getStatus() { return status; }
 
-    /** @return šiuo metu apdorojama siunta, arba null jei nėra */
+    /** Returns the shipment currently being processed, or null if the port is IDLE or CLOSED. */
     public Shipment getActiveShipment() { return activeShipment; }
 
-    /** @return siunčiamų siuntų kiekis šiuo metu laukiančių šio porto eilėje */
+    /** Returns the number of shipments currently waiting in this port's queue. */
     public int getQueueSize() { return shipmentQueue.size(); }
 
-    /** @return true jei eilė dar nepasiekė MAX_QUEUE_CAPACITY */
+    /**
+     * Returns true if the port's queue has not yet reached {@link #MAX_QUEUE_CAPACITY}
+     * and can accept at least one more shipment.
+     */
     public boolean hasQueueCapacity() {
         return shipmentQueue.size() < MAX_QUEUE_CAPACITY;
     }
 
     /**
-     * Grąžina tik skaitomą dabartinės eilės tvarkos momentinę nuotrauką.
-     * Skirta patikrinimui ir registravimui — neredaguokite grąžinto sąrašo.
+     * Returns an unmodifiable snapshot of the current queue order.
+     * Intended for inspection and logging only — do not modify the returned list.
      *
-     * @return neredaguojamas eilėje esančių siuntų sąrašas, eilės pradžia pirma
+     * @return read-only list of queued shipments, front of queue first
      */
     public List<Shipment> getQueueSnapshot() {
         return Collections.unmodifiableList(new LinkedList<>(shipmentQueue));
     }
 
     // -------------------------------------------------------------------------
-    // Suderinamumo patikrinimas
+    // Compatibility check
     // -------------------------------------------------------------------------
 
     /**
-     * Patikrina ar šis portas gali apdoroti nurodytą siuntą.
-     * Portas yra suderinamas jei jo vėliavėlės yra siuntos reikalaujamų
-     * vėliavėlių superset'as.
+     * Returns true if this port can process the given shipment.
+     * Compatibility requires that the port's handling flags are a superset of
+     * the shipment's required handling flags.
      *
-     * @param shipment siunta kurią testuojame
-     * @return true jei šis portas gali apdoroti visas siuntos vėliavėles
+     * @param shipment the shipment to test
+     * @return true if this port supports all of the shipment's handling flags
      */
     public boolean isCompatibleWith(Shipment shipment) {
         return handlingFlags.containsAll(shipment.getHandlingFlags());
     }
 
     // -------------------------------------------------------------------------
-    // Eilės valdymas
+    // Queue management
     // -------------------------------------------------------------------------
 
     /**
-     * Prideda siuntą į šio porto eilės galą.
+     * Adds a shipment to the back of this port's queue.
      *
-     * @param shipment siunta kurią reikia įdėti į eilę
-     * @throws IllegalStateException jei eilė jau pilna arba
-     *                               portas nepriima darbo (CLOSED / PENDING_CLOSE)
+     * @param shipment the shipment to enqueue
+     * @throws IllegalStateException if the port is CLOSED or PENDING_CLOSE (not accepting work),
+     *                               or if the queue is already at {@link #MAX_QUEUE_CAPACITY}
      */
     public void enqueue(Shipment shipment) {
         if (status == Status.CLOSED || status == Status.PENDING_CLOSE) {
             throw new IllegalStateException(
-                    "Portas " + portId + " nepriima naujų siuntų — būsena: " + status
+                    "Port " + portId + " is not accepting new shipments — status: " + status
             );
         }
         if (!hasQueueCapacity()) {
             throw new IllegalStateException(
-                    "Porto " + portId + " eilė pilna (" + MAX_QUEUE_CAPACITY + " siuntų)"
+                    "Port " + portId + " queue is full (" + MAX_QUEUE_CAPACITY + " shipments)"
             );
         }
         shipmentQueue.add(shipment);
     }
 
     /**
-     * Pašalina ir grąžina siuntą eilės priekyje.
-     * Grąžina null jei eilė tuščia.
+     * Removes and returns the shipment at the front of the queue.
+     * Returns null if the queue is empty.
      *
-     * @return kita eilėje esanti siunta, arba null jei nėra
+     * @return the next queued shipment, or null if none
      */
     public Shipment dequeue() {
         return shipmentQueue.poll();
     }
 
     /**
-     * Ištuština visas siuntas iš šio porto eilės į naują sąrašą ir išvalo eilę.
-     * Naudojama kai portas užsidaro ir turi grąžinti laukiančius darbus į Grido eilę.
+     * Removes all shipments from this port's queue and returns them as a list,
+     * preserving original queue order. Used when a port closes and must return
+     * any unstarted work to the grid queue so it is not lost.
      *
-     * @return ištuštintų siuntų sąrašas originalia eilės tvarka
+     * @return list of drained shipments in original queue order
      */
     public List<Shipment> drainQueue() {
         List<Shipment> drained = new LinkedList<>(shipmentQueue);
@@ -207,20 +230,20 @@ public class Port {
     }
 
     // -------------------------------------------------------------------------
-    // Aktyvi siunta
+    // Active shipment management
     // -------------------------------------------------------------------------
 
     /**
-     * Nustato siuntą, kurią šis portas šiuo metu apdoroja, ir perkelia
-     * portą į BUSY būseną.
+     * Sets the given shipment as the one currently being processed and
+     * transitions the port from IDLE to BUSY.
      *
-     * @param shipment siunta kurią pradėti apdoroti (negali būti null)
-     * @throws IllegalStateException jei portas nėra IDLE
+     * @param shipment the shipment to start processing (must not be null)
+     * @throws IllegalStateException if the port is not currently IDLE
      */
     public void startProcessing(Shipment shipment) {
         if (status != Status.IDLE) {
             throw new IllegalStateException(
-                    "Portas " + portId + " negali pradėti apdorojimo — dabartinė būsena: " + status
+                    "Port " + portId + " cannot start processing — current status: " + status
             );
         }
         this.activeShipment = shipment;
@@ -228,16 +251,16 @@ public class Port {
     }
 
     /**
-     * Išvalo aktyvią siuntą kai rinkimas/pakavimas baigtas.
-     * Jei portas yra BUSY — pereina atgal į IDLE kad galėtų priimti kitą siuntą.
-     * Jei yra PENDING_CLOSE — pereina į CLOSED.
+     * Clears the active shipment after picking and packing are complete.
+     * Transitions BUSY -> IDLE so the port can accept the next shipment,
+     * or PENDING_CLOSE -> CLOSED if the shift ended while the port was busy.
      *
-     * @throws IllegalStateException jei nėra aktyvios siuntos kurią baigti
+     * @throws IllegalStateException if there is no active shipment to finish
      */
     public void finishProcessing() {
         if (activeShipment == null) {
             throw new IllegalStateException(
-                    "Portas " + portId + " neturi aktyvios siuntos kurią baigti"
+                    "Port " + portId + " has no active shipment to finish"
             );
         }
         this.activeShipment = null;
@@ -249,35 +272,35 @@ public class Port {
     }
 
     // -------------------------------------------------------------------------
-    // Būsenos perėjimai
+    // Status transitions
     // -------------------------------------------------------------------------
 
     /**
-     * Atidaro portą pamainos pradžioje — pereina iš CLOSED į IDLE.
+     * Opens the port at shift or break end, transitioning CLOSED -> IDLE.
      *
-     * @throws IllegalStateException jei portas šiuo metu nėra CLOSED
+     * @throws IllegalStateException if the port is not currently CLOSED
      */
     public void open() {
         if (status != Status.CLOSED) {
             throw new IllegalStateException(
-                    "Portas " + portId + " negali būti atidarytas — dabartinė būsena: " + status
+                    "Port " + portId + " cannot be opened — current status: " + status
             );
         }
         this.status = Status.IDLE;
     }
 
     /**
-     * Signalizuoja kad pamaina (arba pertrauka) baigėsi.
-     * Jei IDLE — iš karto užsidaro.
-     * Jei BUSY — pereina į PENDING_CLOSE kad dabartinė siunta galėtų
-     * būti baigta prieš uždarant portą.
+     * Signals that the current shift or break has ended.
+     * If the port is IDLE it closes immediately (CLOSED).
+     * If the port is BUSY it enters PENDING_CLOSE and will close after the
+     * current shipment finishes.
      *
-     * @throws IllegalStateException jei portas jau yra CLOSED arba PENDING_CLOSE
+     * @throws IllegalStateException if the port is already CLOSED or PENDING_CLOSE
      */
     public void requestClose() {
         if (status == Status.CLOSED || status == Status.PENDING_CLOSE) {
             throw new IllegalStateException(
-                    "Portas " + portId + " jau užsidaro arba uždarytas — būsena: " + status
+                    "Port " + portId + " is already closing or closed — status: " + status
             );
         }
         if (status == Status.BUSY) {
@@ -288,9 +311,10 @@ public class Port {
     }
 
     /**
-     * Priverstinai uždaro portą nepriklausomai nuo dabartinės būsenos.
-     * Skirta avariniam išjungimui arba simuliacijos pabaigos valymui.
-     * NEIŠTUŠTINA eilės — kviečiantysis atsakingas už tai jei reikia.
+     * Forces the port to CLOSED status regardless of its current state.
+     * Clears the active shipment reference but does NOT drain the queue —
+     * the caller is responsible for handling any queued shipments if needed.
+     * Intended for emergency shutdown or end-of-simulation cleanup only.
      */
     public void forceClose() {
         this.status = Status.CLOSED;
@@ -302,16 +326,21 @@ public class Port {
     // -------------------------------------------------------------------------
 
     /**
-     * Alias for isCompatibleWith — used in BinPickCompleted.
+     * Alias for {@link #isCompatibleWith(Shipment)}.
+     * Provided for readability at call sites in event classes.
+     *
+     * @param shipment the shipment to check
+     * @return true if this port supports all of the shipment's handling flags
      */
     public boolean canHandle(Shipment shipment) {
         return isCompatibleWith(shipment);
     }
 
     /**
-     * Dequeues the next shipment from this port's queue and starts processing it.
-     * Returns the started shipment, or null if the queue was empty.
-     * The port must be IDLE when this is called.
+     * Dequeues the next shipment from this port's queue and immediately starts
+     * processing it. The port must be IDLE when this is called.
+     *
+     * @return the shipment that was started, or null if the queue was empty
      */
     public Shipment startNextShipment() {
         Shipment next = dequeue();
@@ -321,32 +350,38 @@ public class Port {
     }
 
     /**
-     * Finishes the current shipment and immediately starts the next one
-     * from the port's queue if available.
+     * Finishes the current shipment and immediately starts the next one from
+     * the port's queue if one is available.
      *
-     * Returns the newly started shipment (so the caller can request its first bin),
-     * or null if the queue was empty and the port is now IDLE.
+     * Returns the newly started shipment so the caller can request its first bin,
+     * or null if the queue was empty (port is now IDLE) or the port transitioned
+     * to CLOSED (was PENDING_CLOSE).
+     *
+     * @return the next shipment that was started, or null
      */
     public Shipment finishCurrentShipment() {
-        finishProcessing(); // clears activeShipment, sets IDLE or CLOSED
+        finishProcessing(); // clears activeShipment, transitions to IDLE or CLOSED
         if (status == Status.IDLE) {
-            return startNextShipment(); // may return null
+            return startNextShipment(); // returns null if queue is empty
         }
-        return null; // port went CLOSED (was PENDING_CLOSE)
+        return null; // port transitioned to CLOSED — no further work accepted
     }
 
     // -------------------------------------------------------------------------
-    // Derinimas
+    // Debugging
     // -------------------------------------------------------------------------
 
-
+    /**
+     * Returns a concise human-readable description of this port's current state,
+     * useful for console logging and debugging.
+     */
     @Override
     public String toString() {
         return "Port{id=" + portId +
                 ", grid=" + gridId +
                 ", status=" + status +
                 ", queueSize=" + shipmentQueue.size() +
-                ", active=" + (activeShipment != null ? activeShipment.getId() : "nėra") +
+                ", active=" + (activeShipment != null ? activeShipment.getId() : "none") +
                 ", flags=" + handlingFlags + "}";
     }
 }
