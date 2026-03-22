@@ -38,12 +38,7 @@ import com.Warehouse.Simulator.router.RouterDTOs;
 
 public class Simulation {
 
-    // "HH:mm" formatter shared by shift-time parsing and ISO conversion helpers.
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
-
-    // -------------------------------------------------------------------------
-    // Core engine state
-    // -------------------------------------------------------------------------
 
     private final EventQueue eventQueue;
 
@@ -59,10 +54,6 @@ public class Simulation {
      * by adding {@code currentTime} seconds to it.
      */
     private final Instant epochInstant;
-
-    // -------------------------------------------------------------------------
-    // Warehouse state registries
-    // -------------------------------------------------------------------------
 
     /** All ports registered in the simulation, keyed by port ID. */
     private final Map<String, Port> ports;
@@ -88,11 +79,6 @@ public class Simulation {
      * given grid pair. Value: 300 seconds (5 minutes).
      */
     private static final double DEFAULT_TRANSFER_DELAY = 300.0;
-
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
-
     /**
      * Full constructor.
      *
@@ -118,10 +104,6 @@ public class Simulation {
         this(endTime, Instant.parse("2026-03-01T00:00:00Z"));
     }
 
-    // -------------------------------------------------------------------------
-    // Main loop
-    // -------------------------------------------------------------------------
-
     /**
      * Runs the simulation to completion.
      *
@@ -137,10 +119,6 @@ public class Simulation {
             next.execute(this);
         }
     }
-
-    // -------------------------------------------------------------------------
-    // Shift scheduling
-    // -------------------------------------------------------------------------
 
     /**
      * Expands every shift defined in every grid into one {@link ShiftOpenEvent}
@@ -163,8 +141,6 @@ public class Simulation {
 
                     LocalTime shiftStart = LocalTime.parse(shift.getStartAt(), TIME_FMT);
 
-                    // Offset of this shift's start from midnight, adjusted for the epoch's
-                    // own wall-clock time so day-0 aligns correctly.
                     long startSecs = shiftStart.toSecondOfDay() - epochTime.toSecondOfDay();
                     if (startSecs < 0) startSecs += 86_400; // wrap past midnight
 
@@ -182,10 +158,6 @@ public class Simulation {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Event scheduling
-    // -------------------------------------------------------------------------
-
     /** Adds an event to the priority queue for future processing. */
     public void schedule(Event event) {
         eventQueue.schedule(event);
@@ -195,10 +167,6 @@ public class Simulation {
     public long nextSequence() {
         return eventQueue.nextSequence();
     }
-
-    // -------------------------------------------------------------------------
-    // Time helpers
-    // -------------------------------------------------------------------------
 
     /** Returns the current simulation clock value in seconds from epoch. */
     public double getCurrentTime() { return currentTime; }
@@ -267,10 +235,6 @@ public class Simulation {
         long s = secs % 60;
         return String.format("%02d:%02d:%02d [%.0fs]", h, m, s, currentTime);
     }
-
-    // -------------------------------------------------------------------------
-    // State accessors
-    // -------------------------------------------------------------------------
 
     /** Looks up a port by ID; returns null if not found. */
     public Port getPort(String id)     { return ports.get(id); }
@@ -356,10 +320,6 @@ public class Simulation {
         String key = fromGridId + "->" + toGridId;
         return conveyorDelays.getOrDefault(key, DEFAULT_TRANSFER_DELAY);
     }
-
-    // -------------------------------------------------------------------------
-    // Router DTO builders
-    // -------------------------------------------------------------------------
 
     /**
      * Builds the list of {@link RouterDTOs.GridDto} objects sent to the external

@@ -35,10 +35,6 @@ public class EventQueue {
      */
     private long sequence = 0;
 
-    // -------------------------------------------------------------------------
-    // Public API
-    // -------------------------------------------------------------------------
-
     /**
      * Adds an event to the queue. The event will be dequeued after all
      * earlier (or same-time, earlier-scheduled) events have been processed.

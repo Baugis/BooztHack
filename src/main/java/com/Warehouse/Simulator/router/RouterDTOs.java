@@ -27,10 +27,6 @@ import java.util.ArrayList;
  */
 public class RouterDTOs {
 
-    // =========================================================================
-    // Outbound DTOs  (simulation -> router)
-    // =========================================================================
-
     /**
      * Root wrapper for the router input payload.
      * Gson serialises this as {"state": {...}}.
@@ -178,10 +174,6 @@ public class RouterDTOs {
         @SerializedName("handling_flags")
         public List<String> handlingFlags = new ArrayList<>();
     }
-
-    // =========================================================================
-    // Inbound DTOs  (router -> simulation)
-    // =========================================================================
 
     /**
      * Root object of the router's JSON response.

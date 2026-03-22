@@ -66,7 +66,6 @@ public class ShiftCloseEvent extends Event {
 
             Port.Status status = port.getStatus();
 
-            // Skip ports that are already closing or closed — nothing to do.
             if (status == Port.Status.CLOSED || status == Port.Status.PENDING_CLOSE) {
                 continue;
             }
@@ -74,15 +73,12 @@ public class ShiftCloseEvent extends Event {
             port.requestClose();
 
             if (port.getStatus() == Port.Status.CLOSED) {
-                // Port was IDLE — closed immediately. Return any queued shipments
-                // to the grid queue so they are not lost when the port shuts down.
                 System.out.printf("[%s] Port %s closed (was IDLE)%n",
                         sim.getTimeLabel(), cfg.portId);
                 for (Shipment s : port.drainQueue()) {
                     grid.enqueueShipment(s);
                 }
             } else {
-                // Port was BUSY — it will finish its current shipment before closing.
                 System.out.printf("[%s] Port %s -> PENDING_CLOSE (finishing current shipment)%n",
                         sim.getTimeLabel(), cfg.portId);
             }

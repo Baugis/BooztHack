@@ -82,10 +82,6 @@ public class Bin {
         this.status = Status.AVAILABLE;
     }
 
-    // -------------------------------------------------------------------------
-    // Getters
-    // -------------------------------------------------------------------------
-
     /** @return the unique bin identifier */
     public String getBinId() { return binId; }
 
@@ -111,9 +107,7 @@ public class Bin {
      */
     public String pollNextWaiting() { return waitingPorts.poll(); }
 
-    // -------------------------------------------------------------------------
     // Stock operations
-    // -------------------------------------------------------------------------
 
     /**
      * Returns the available quantity for a given EAN in this bin.
@@ -148,9 +142,7 @@ public class Bin {
         }
     }
 
-    // -------------------------------------------------------------------------
     // Status transitions
-    // -------------------------------------------------------------------------
 
     /**
      * Attempts to reserve this bin for the given port.
@@ -203,9 +195,7 @@ public class Bin {
      */
     public void setGridId(String gridId) { this.gridId = gridId; }
 
-    // -------------------------------------------------------------------------
     // Debug
-    // -------------------------------------------------------------------------
 
     @Override
     public String toString() {

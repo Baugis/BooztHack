@@ -81,11 +81,9 @@ public class TruckArrived extends Event {
                 shipment.markAsShipped(sim.getCurrentTime());
                 shipped.add(shipment);
 
-                // A shipment is on time if it was packed before or exactly at the pull time.
                 if (shipment.getPackedAt() <= pullTimeSecs) {
                     onTime++;
                 } else {
-                    // Packed after the pull time — log the overshoot delta for diagnostics.
                     late++;
                     System.out.printf(
                             "       LATE: %s (packed=%.0fs, pullTime=%.0fs, delta=+%.0fs)%n",
@@ -97,11 +95,9 @@ public class TruckArrived extends Event {
             }
         }
 
-        // Print a one-line summary for this truck departure.
         System.out.printf("[%s] Truck loaded %d shipments for direction=%s (onTime=%d, late=%d)%n",
                 sim.getTimeLabel(), shipped.size(), sortingDirection, onTime, late);
 
-        // Print dwell time (time spent waiting as PACKED before being collected) per shipment.
         for (Shipment s : shipped) {
             double dwellTime = s.getShippedAt() - s.getPackedAt();
             System.out.printf("       Shipped: %s (dwell=%.0fs)%n", s.getId(), dwellTime);

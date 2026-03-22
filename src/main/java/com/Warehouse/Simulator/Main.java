@@ -47,15 +47,10 @@ public class Main {
 
     public static void main(String[] args) {
 
-        // -------------------------------------------------------------------------
-        // 0. Load config
-        // -------------------------------------------------------------------------
         String workingDir = System.getProperty("user.dir");
         System.out.println("Working dir: " + workingDir);
         ConfigLoader cfg = new ConfigLoader(workingDir + "/config.json");
-        // -------------------------------------------------------------------------
-        // 1. Load data from JSON files
-        // -------------------------------------------------------------------------
+
         DataLoader loader = new DataLoader(
                 cfg.getShipmentsPath(),
                 cfg.getGridsPath(),
@@ -70,17 +65,11 @@ public class Main {
                 + bins.size() + " bins, "
                 + grids.size() + " grids");
 
-        // Abort early — nothing useful can happen without shipments or grids
         if (shipments.isEmpty() || grids.isEmpty()) {
             System.err.println("No data loaded — check that the JSON files exist.");
             return;
         }
 
-        // -------------------------------------------------------------------------
-        // 2. Epoch & simulation duration from config
-        // -------------------------------------------------------------------------
-        // The epoch is simulation time t=0. All event timestamps are expressed
-        // as seconds elapsed since this instant.
         Instant epoch             = Instant.parse(cfg.getEpochDate());
         double  simDurationSeconds = cfg.getSimDurationSeconds();
 
@@ -90,17 +79,10 @@ public class Main {
 
         Simulation sim = new Simulation(simDurationSeconds, epoch);
 
-        // -------------------------------------------------------------------------
-        // 3. Register grids
-        // -------------------------------------------------------------------------
         for (Grid grid : grids) {
             sim.addGrid(grid);
         }
 
-        // -------------------------------------------------------------------------
-        // 4. Register bins into their starting grids
-        // -------------------------------------------------------------------------
-        // Bins reference their grid by ID; warn and skip if the grid is unknown.
         for (Bin bin : bins) {
             Grid grid = sim.getGrid(bin.getGridId());
             if (grid != null) {
@@ -111,11 +93,6 @@ public class Main {
             }
         }
 
-        // -------------------------------------------------------------------------
-        // 5. Schedule ShipmentReceived events
-        // -------------------------------------------------------------------------
-        // Each shipment fires at its createdAt offset from epoch.
-        // Negative offsets (shipments created before epoch) are clamped to t=0.
         for (Shipment shipment : shipments) {
             if (shipment.createdAt == null) continue;
             Instant createdAt     = Instant.parse(shipment.createdAt);
@@ -125,16 +102,8 @@ public class Main {
                     offsetSeconds, sim.nextSequence(), shipment));
         }
 
-        // -------------------------------------------------------------------------
-        // 6. Schedule shift open/close/break events
-        // -------------------------------------------------------------------------
-        // Delegates to Simulation, which walks each grid's shifts and creates
-        // ShiftStarted, ShiftEnded, BreakStartEvent, and BreakEndEvent instances.
         sim.scheduleAllShifts();
 
-        // -------------------------------------------------------------------------
-        // 7. Load truck schedules and conveyor delays from params.json
-        // -------------------------------------------------------------------------
         ParamsLoader               paramsLoader   = new ParamsLoader(cfg.getParamsPath());
         List<TruckSchedule>        truckSchedules = paramsLoader.loadTruckSchedules();
         java.util.Map<String, Double> conveyors   = paramsLoader.loadConveyors();
@@ -148,7 +117,7 @@ public class Main {
         sim.registerDeliveryTimes(deliveryTimes);
         System.out.println("Loaded: " + deliveryTimes.size() + " delivery time(s)");
 
-        // Determine the day-of-week name for the epoch date (used for truck scheduling)
+        // Determine the day-of-week name for the epoch date
         LocalDate epochDate    = epoch.atZone(ZoneOffset.UTC).toLocalDate();
         String    epochDayName = epochDate.getDayOfWeek()
                 .getDisplayName(TextStyle.FULL, Locale.ENGLISH);
@@ -181,33 +150,18 @@ public class Main {
             }
         }
 
-        // -------------------------------------------------------------------------
-        // 8. Router setup — first trigger at t=0
-        // -------------------------------------------------------------------------
-        // The router binary path is OS-detected. The first ShipmentRouterTriggered
-        // fires at t=0; subsequent triggers are re-scheduled by the event itself.
         String       routerPath   = detectRouterPath();
         RouterCaller routerCaller = new RouterCaller(routerPath);
 
         sim.schedule(new ShipmentRouterTriggered(
                 0.0, sim.nextSequence(), routerCaller));
 
-        // -------------------------------------------------------------------------
-        // 9. Run the event loop
-        // -------------------------------------------------------------------------
         System.out.println("\n========== SIMULATION START ==========\n");
         sim.run();
         System.out.println("\n========== SIMULATION END ==========\n");
 
-        // -------------------------------------------------------------------------
-        // 10. Post-run summary
-        // -------------------------------------------------------------------------
         printSummary(sim, truckSchedules, epochDayName, epochDate, simDurationSeconds);
     }
-
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
 
     /**
      * Resolves the correct router binary path for the current OS.
@@ -260,8 +214,6 @@ public class Main {
 
         int totalDays = (int) Math.ceil(simDurationSeconds / 86_400.0);
 
-        // Build a map of sortingDirection → earliest pull time (seconds from epoch)
-        // across the entire simulation window, used for on-time KPI calculation.
         java.util.Map<String, Double> earliestPull = new java.util.HashMap<>();
         for (int day = 0; day < totalDays; day++) {
             LocalDate currentDate   = epochDate.plusDays(day);
@@ -298,20 +250,16 @@ public class Main {
                     if (s.getStatus() == Shipment.ShipmentStatus.PACKED) packed++;
                     else shipped++;
 
-                    // Accumulate pack time (received → packed)
                     if (s.getPackedAt() > 0) {
                         totalPackTime += s.getPackedAt() - s.getReceivedTime();
                         packCount++;
                     }
-
-                    // Accumulate dwell time (packed → shipped)
                     if (s.getStatus() == Shipment.ShipmentStatus.SHIPPED
                             && s.getShippedAt() > 0 && s.getPackedAt() > 0) {
                         totalDwell += s.getShippedAt() - s.getPackedAt();
                         dwellCount++;
                     }
 
-                    // On-time classification against earliest truck pull
                     Double pull = earliestPull.get(s.getSortingDirection());
                     if (pull == null)                                    noTruck++;
                     else if (s.getPackedAt() > 0 && s.getPackedAt() <= pull) onTime++;

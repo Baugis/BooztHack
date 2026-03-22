@@ -26,10 +26,6 @@ import java.util.HashSet;
  */
 public class Shipment implements Serializable {
 
-    // -------------------------------------------------------------------------
-    // Identity & immutable order data
-    // -------------------------------------------------------------------------
-
     /** Unique shipment identifier, e.g. "SHIP-001". */
     private final String id;
 
@@ -58,10 +54,6 @@ public class Shipment implements Serializable {
      * superset of these flags.
      */
     Set<String> handlingFlags = new HashSet<>();
-
-    // -------------------------------------------------------------------------
-    // Lifecycle status
-    // -------------------------------------------------------------------------
 
     /**
      * The full set of statuses a shipment can occupy during simulation.
@@ -96,10 +88,6 @@ public class Shipment implements Serializable {
     /** Simulation time when this shipment was shipped; -1 if not yet shipped. */
     private transient double shippedTime = -1;
 
-    // -------------------------------------------------------------------------
-    // Pick-progress tracking  (populated by applyRouterAssignment)
-    // -------------------------------------------------------------------------
-
     /**
      * Ordered list of bin picks assigned by the router.
      * Ports work through this list one entry at a time — the next bin is not
@@ -131,10 +119,6 @@ public class Shipment implements Serializable {
      * When this reaches zero the shipment transitions CONSOLIDATION -> READY.
      */
     private transient int pendingTransfers = 0;
-
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
 
     /**
      * Master constructor — used when all order attributes are available.
@@ -171,10 +155,6 @@ public class Shipment implements Serializable {
                     String shipmentDate, double simTime) {
         this(id, items, shipmentDate, simTime, new HashSet<>(), "DEFAULT-DIR");
     }
-
-    // -------------------------------------------------------------------------
-    // Status transitions
-    // -------------------------------------------------------------------------
 
     /**
      * Transitions the shipment to PICKING status.
@@ -270,10 +250,6 @@ public class Shipment implements Serializable {
         this.pendingTransfers = 0;
     }
 
-    // -------------------------------------------------------------------------
-    // Router assignment
-    // -------------------------------------------------------------------------
-
     /**
      * Applies the router's routing decision to this shipment.
      * Transitions status RECEIVED -> ROUTED and stores the pick list and
@@ -292,10 +268,6 @@ public class Shipment implements Serializable {
         this.pickIndex   = 0;
         this.status      = ShipmentStatus.ROUTED;
     }
-
-    // -------------------------------------------------------------------------
-    // Pick-progress tracking
-    // -------------------------------------------------------------------------
 
     /**
      * Returns the current pick the port should be working on, without
@@ -325,10 +297,6 @@ public class Shipment implements Serializable {
     public boolean allPicksDone() {
         return pickIndex >= picks.size();
     }
-
-    // -------------------------------------------------------------------------
-    // Getters
-    // -------------------------------------------------------------------------
 
     /** Returns the unique shipment identifier. */
     public String getId()               { return id; }
@@ -362,10 +330,6 @@ public class Shipment implements Serializable {
 
     /** Returns the router-assigned priority score. */
     public int getPriority()               { return priority; }
-
-    // -------------------------------------------------------------------------
-    // Setters
-    // -------------------------------------------------------------------------
 
     /**
      * Records the simulation time at which this shipment entered the system.

@@ -35,10 +35,6 @@ public class BreakStartEvent extends Event {
     /** The specific break window that is starting. */
     private final Shift.BreakWindow breakWindow;
 
-    // -------------------------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------------------------
-
     /**
      * @param simTime        simulation time at which the break starts
      * @param sequenceNumber tie-breaker for same-timestamp events
@@ -53,10 +49,6 @@ public class BreakStartEvent extends Event {
         this.shift       = shift;
         this.breakWindow = breakWindow;
     }
-
-    // -------------------------------------------------------------------------
-    // Event execution
-    // -------------------------------------------------------------------------
 
     /**
      * Gracefully closes all active ports for this shift.
@@ -84,7 +76,6 @@ public class BreakStartEvent extends Event {
             Port port = grid.getPort(cfg.portId);
             if (port == null) continue;
 
-            // Skip ports that are already offline — nothing to do
             Port.Status status = port.getStatus();
             if (status == Port.Status.CLOSED || status == Port.Status.PENDING_CLOSE) {
                 continue;
@@ -93,17 +84,12 @@ public class BreakStartEvent extends Event {
             port.requestClose();
 
             if (port.getStatus() == Port.Status.CLOSED) {
-                // Port was IDLE — closed immediately.
-                // Drain its shipment queue back to the grid so BreakEndEvent
-                // can reassign them once the break is over.
                 System.out.printf("[%s] Port %s paused for break%n",
                         sim.getTimeLabel(), cfg.portId);
                 for (Shipment s : port.drainQueue()) {
                     grid.enqueueShipment(s);
                 }
             } else {
-                // Port was BUSY — deferred close. It will finish its current
-                // shipment and then stop accepting new work automatically.
                 System.out.printf("[%s] Port %s -> PENDING_CLOSE for break%n",
                         sim.getTimeLabel(), cfg.portId);
             }

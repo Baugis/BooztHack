@@ -76,33 +76,26 @@ public class ShiftOpenEvent extends Event {
         System.out.printf("[%s] ShiftOpen: grid=%s shift=%s-%s%n",
                 sim.getTimeLabel(), gridId, shift.getStartAt(), shift.getEndAt());
 
-        // --- Step 1: Open (or lazily create) each port in the shift config ---
         for (Shift.PortConfig cfg : shift.portConfig) {
             Port port = grid.getPort(cfg.portId);
             if (port == null) {
-                // First time this port appears — create it from the shift config.
                 Set<String> flags = new HashSet<>(cfg.handlingFlags);
                 port = new Port(cfg.portId, gridId, flags);
                 grid.addPort(port);
             }
 
-            // Guard: skip ports that are already open from a prior overlapping shift.
             if (port.getStatus() == Port.Status.CLOSED) {
                 port.open();
                 System.out.printf("[%s] Port %s opened%n", sim.getTimeLabel(), cfg.portId);
             }
 
-            // --- Step 2: Immediately assign a waiting shipment if the port is idle ---
             if (port.getStatus() == Port.Status.IDLE && grid.hasQueuedShipments()) {
                 tryAssignFromGridQueue(sim, grid, port);
             }
         }
 
-        // --- Step 3: Schedule break events ---
-        // Offsets are computed relative to the shift start so that shifts
-        // spanning midnight resolve to the correct absolute sim times.
         LocalTime shiftStart    = LocalTime.parse(shift.getStartAt(), TIME_FMT);
-        double    shiftStartSec = sim.getCurrentTime(); // this event fires exactly at shift start
+        double    shiftStartSec = sim.getCurrentTime();
 
         for (Shift.BreakWindow brk : shift.getBreaks()) {
             LocalTime breakStart = LocalTime.parse(brk.startAt, TIME_FMT);
@@ -115,7 +108,6 @@ public class ShiftOpenEvent extends Event {
             sim.schedule(new BreakEndEvent(breakEndTime,     sim.nextSequence(), gridId, shift, brk));
         }
 
-        // --- Step 4: Schedule shift close ---
         LocalTime shiftEnd    = LocalTime.parse(shift.getEndAt(), TIME_FMT);
         double    closeTime   = shiftStartSec + secondsBetween(shiftStart, shiftEnd);
         sim.schedule(new ShiftCloseEvent(closeTime, sim.nextSequence(), gridId, shift));
@@ -164,7 +156,6 @@ public class ShiftOpenEvent extends Event {
         Bin bin = sim.getBin(pick.binId);
         if (bin == null) return;
 
-        // Mark as outside so no other port can reserve the bin while it is in transit.
         bin.markOutside();
 
         double delay = sim.getDeliveryDelay(shipment.getPackingGrid());
@@ -189,7 +180,7 @@ public class ShiftOpenEvent extends Event {
      */
     public static long secondsBetween(LocalTime from, LocalTime to) {
         long secs = to.toSecondOfDay() - from.toSecondOfDay();
-        if (secs < 0) secs += 86_400; // interval crosses midnight
+        if (secs < 0) secs += 86_400;
         return secs;
     }
 }

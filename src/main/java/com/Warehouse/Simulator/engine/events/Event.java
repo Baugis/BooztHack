@@ -33,10 +33,6 @@ public abstract class Event implements Comparable<Event> {
      */
     private final long sequenceNumber;
 
-    // -------------------------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------------------------
-
     /**
      * @param simTime        seconds from simulation start at which this event fires
      * @param sequenceNumber scheduling-order tiebreaker; obtain from
@@ -46,10 +42,6 @@ public abstract class Event implements Comparable<Event> {
         this.simTime        = simTime;
         this.sequenceNumber = sequenceNumber;
     }
-
-    // -------------------------------------------------------------------------
-    // Abstract interface
-    // -------------------------------------------------------------------------
 
     /**
      * Executes the event's logic at its scheduled simulation time.
@@ -63,11 +55,6 @@ public abstract class Event implements Comparable<Event> {
      *            and scheduling access
      */
     public abstract void execute(Simulation sim);
-
-    // -------------------------------------------------------------------------
-    // Ordering
-    // -------------------------------------------------------------------------
-
     /**
      * Orders events for the simulation priority queue.
      * Earlier time fires first; equal times are broken by {@code sequenceNumber}
@@ -84,10 +71,6 @@ public abstract class Event implements Comparable<Event> {
         if (timeCompare != 0) return timeCompare;
         return Long.compare(this.sequenceNumber, other.sequenceNumber);
     }
-
-    // -------------------------------------------------------------------------
-    // Accessors
-    // -------------------------------------------------------------------------
 
     /**
      * @return the simulated fire time in seconds from epoch

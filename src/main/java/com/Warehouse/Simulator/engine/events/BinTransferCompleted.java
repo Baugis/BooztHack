@@ -52,10 +52,6 @@ public class BinTransferCompleted extends Event {
      */
     private final boolean isReturnTransfer;
 
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
-
     /**
      * Convenience constructor for shipment-driven transfers.
      * Sets {@code isReturnTransfer = false}, so bin balancing will trigger.
@@ -103,10 +99,6 @@ public class BinTransferCompleted extends Event {
         this.isReturnTransfer  = isReturnTransfer;
     }
 
-    // -------------------------------------------------------------------------
-    // Event execution
-    // -------------------------------------------------------------------------
-
     /**
      * Processes the arrival of a transferred bin at its destination grid.
      *
@@ -118,7 +110,6 @@ public class BinTransferCompleted extends Event {
                 sim.getTimeLabel(), binId, sourceGridId, destinationGridId, transferDuration,
                 isReturnTransfer ? " [balance return]" : "");
 
-        // --- Guards: both grids and the bin must exist ---
         Grid sourceGrid = sim.getGrid(sourceGridId);
         Grid destGrid   = sim.getGrid(destinationGridId);
 
@@ -134,24 +125,16 @@ public class BinTransferCompleted extends Event {
             return;
         }
 
-        // --- Step 1: Move bin to destination grid ---
-        // Remove from source, update the bin's own grid reference, add to destination,
-        // then mark AVAILABLE so it can be reserved for picks immediately.
         sourceGrid.removeBin(binId);
         bin.setGridId(destinationGridId);
         destGrid.addBin(bin);
         bin.markAvailable();
 
-        // --- Step 2 & 3: Notify the shipment and check for CONSOLIDATION → READY ---
-        // Only applies to shipment-driven transfers; balancing returns have no shipment.
         if (shipmentId != null) {
             Shipment shipment = sim.getShipment(shipmentId);
             if (shipment != null) {
                 shipment.decrementPendingTransfers();
 
-                // When the last pending transfer completes and the shipment is still
-                // in CONSOLIDATION, all its bins are now on the destination grid —
-                // transition to READY and assign it to a port.
                 if (shipment.allTransfersDone()
                         && shipment.getStatus() == Shipment.ShipmentStatus.CONSOLIDATION) {
 
@@ -159,8 +142,6 @@ public class BinTransferCompleted extends Event {
                     System.out.printf("[%s] Shipment %s READY (all transfers done)%n",
                             sim.getTimeLabel(), shipmentId);
 
-                    // Prefer the best-matching port on the destination grid;
-                    // fall back to the grid queue if no suitable port is free.
                     Port port = destGrid.findBestPortFor(shipment);
                     if (port != null) {
                         port.enqueue(shipment);
@@ -177,18 +158,11 @@ public class BinTransferCompleted extends Event {
             }
         }
 
-        // --- Step 4: Level 9 Bin Balancing — one-in, one-out ---
-        // For every inbound shipment transfer, send one AVAILABLE bin back to
-        // the source grid so its capacity stays balanced. Skipped for return
-        // transfers to avoid triggering another return in the opposite direction.
         if (!isReturnTransfer) {
             scheduleReturnTransfer(sim, destGrid);
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
 
     /**
      * Selects an AVAILABLE bin from the destination grid (excluding the bin that
@@ -205,8 +179,6 @@ public class BinTransferCompleted extends Event {
      * @param destGrid the grid that just received an inbound bin
      */
     private void scheduleReturnTransfer(Simulation sim, Grid destGrid) {
-        // Find any AVAILABLE bin in the destination grid, skipping the one that
-        // just arrived (it was placed there moments ago and should stay put).
         Bin returnBin = null;
         for (Bin candidate : destGrid.getAllBins()) {
             if (candidate.getBinId().equals(binId)) continue;
@@ -228,18 +200,17 @@ public class BinTransferCompleted extends Event {
                 sim.getTimeLabel(), returnBin.getBinId(),
                 destinationGridId, sourceGridId, returnDelay);
 
-        // Mark as OUTSIDE so it can't be picked while in transit
         returnBin.markOutside();
 
         sim.schedule(new BinTransferCompleted(
                 sim.getCurrentTime() + returnDelay,
                 sim.nextSequence(),
                 returnBin.getBinId(),
-                destinationGridId,  // now travelling back to the original source
+                destinationGridId,
                 sourceGridId,
-                null,               // no shipment — this is a pure balancing move
+                null,
                 returnDelay,
-                true                // suppress the next return to break the cycle
+                true
         ));
     }
 

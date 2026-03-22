@@ -23,10 +23,7 @@ import com.google.gson.Gson;
  *   both names resolve to the same data structure without duplicating fields.
  */
 public class RouterCaller {
-
-    // =========================================================================
     // DTO aliases — events use RouterCaller.X, forwarded to RouterDTOs.X
-    // =========================================================================
 
     /** Alias for {@link RouterDTOs.Pick}. Represents a single bin pick operation. */
     public static class Pick extends RouterDTOs.Pick {}
@@ -68,10 +65,6 @@ public class RouterCaller {
         public RouterException(String msg, Throwable cause) { super(msg, cause); }
     }
 
-    // =========================================================================
-    // Subprocess communication
-    // =========================================================================
-
     /** Filesystem path (or command) used to launch the router binary. */
     private final String routerPath;
 
@@ -112,13 +105,10 @@ public class RouterCaller {
 
         try {
             ProcessBuilder pb = new ProcessBuilder(routerPath);
-            // Keep stderr separate so router error output does not appear in
             // the stdout stream that we parse as JSON.
             pb.redirectErrorStream(false);
             Process process = pb.start();
 
-            // Write the serialised state to the router's stdin, then close
-            // the stream to signal end-of-input to the router process.
             OutputStream stdin = process.getOutputStream();
             stdin.write(json.getBytes(StandardCharsets.UTF_8));
             stdin.flush();
@@ -133,22 +123,17 @@ public class RouterCaller {
                 sb.append(line).append("\n");
             }
 
-            // A non-zero exit code means the router encountered an error;
-            // its stderr output will have details but is not captured here.
             int exitCode = process.waitFor();
             if (exitCode != 0) {
                 throw new RouterException("Router exited with code " + exitCode);
             }
 
-            // Deserialise the response and copy assignments into the alias type
-            // so callers receive a RouterCaller.Response rather than a raw RouterDTOs.Response.
             RouterDTOs.Response raw = gson.fromJson(sb.toString(), RouterDTOs.Response.class);
             Response response = new Response();
             response.assignments = raw.assignments;
             return response;
 
         } catch (RouterException re) {
-            // Re-throw directly so the RouterException message is not wrapped again.
             throw re;
         } catch (Exception e) {
             throw new RouterException("Router subprocess error: " + e.getMessage(), e);

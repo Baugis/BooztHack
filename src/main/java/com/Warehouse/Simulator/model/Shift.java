@@ -68,10 +68,6 @@ public class Shift {
         return breaks != null ? breaks : new ArrayList<>();
     }
 
-    // -------------------------------------------------------------------------
-    // Inner classes
-    // -------------------------------------------------------------------------
-
     /**
      * A single scheduled break window within a shift.
      * During a break, ports behave the same as at shift end: IDLE ports close

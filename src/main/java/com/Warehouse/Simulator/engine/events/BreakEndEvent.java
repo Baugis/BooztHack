@@ -32,10 +32,6 @@ public class BreakEndEvent extends Event {
     /** The specific break window that has just ended. */
     private final Shift.BreakWindow breakWindow;
 
-    // -------------------------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------------------------
-
     /**
      * @param simTime        simulation time at which the break ends
      * @param sequenceNumber tie-breaker for same-timestamp events
@@ -50,10 +46,6 @@ public class BreakEndEvent extends Event {
         this.shift       = shift;
         this.breakWindow = breakWindow;
     }
-
-    // -------------------------------------------------------------------------
-    // Event execution
-    // -------------------------------------------------------------------------
 
     /**
      * Re-opens CLOSED ports and kicks off the next queued shipment on each.
@@ -84,18 +76,12 @@ public class BreakEndEvent extends Event {
         for (Shift.PortConfig cfg : shift.portConfig) {
             Port port = grid.getPort(cfg.portId);
             if (port == null) continue;
-
-            // PENDING_CLOSE ports are still finishing a shipment started before
-            // the break — leave them alone; they become IDLE naturally.
             if (port.getStatus() != Port.Status.CLOSED) continue;
 
             port.open();
             System.out.printf("[%s] Port %s reopened after break%n",
                     sim.getTimeLabel(), cfg.portId);
 
-            // Attempt to pull the next waiting shipment from the grid queue.
-            // If the port can't handle it (flag mismatch or full), put it back
-            // so another port or a later event can claim it.
             if (grid.hasQueuedShipments()) {
                 Shipment next = grid.dequeueShipment();
                 if (next != null) {
@@ -112,10 +98,6 @@ public class BreakEndEvent extends Event {
             }
         }
     }
-
-    // -------------------------------------------------------------------------
-    // Helpers
-    // -------------------------------------------------------------------------
 
     /**
      * Schedules the first {@link BinArrivedAtPort} event for a newly started shipment.

@@ -50,10 +50,6 @@ public class BinArrivedAtPort extends Event {
     /** ID of the grid the bin originated from. */
     private final String gridId;
 
-    // -------------------------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------------------------
-
     /**
      * Creates a BinArrivedAtPort event.
      *
@@ -78,10 +74,6 @@ public class BinArrivedAtPort extends Event {
         this.gridId     = gridId;
     }
 
-    // -------------------------------------------------------------------------
-    // Event execution
-    // -------------------------------------------------------------------------
-
     /**
      * Handles the bin's arrival at the port.
      *
@@ -104,14 +96,12 @@ public class BinArrivedAtPort extends Event {
         System.out.printf("[%s] BinArrivedAtPort: bin=%s, port=%s, shipment=%s%n",
                 sim.getTimeLabel(), binId, portId, shipmentId);
 
-        // --- Guard: shipment must exist ---
         Shipment shipment = sim.getShipment(shipmentId);
         if (shipment == null) {
             System.err.println("BinArrivedAtPort: unknown shipment " + shipmentId);
             return;
         }
 
-        // --- Guard: skip if shipment was already completed by another bin ---
         if (shipment.getStatus() == Shipment.ShipmentStatus.PACKED ||
             shipment.getStatus() == Shipment.ShipmentStatus.SHIPPED) {
             System.out.printf("[%s] BinArrivedAtPort: skipping — shipment %s already %s%n",
@@ -119,7 +109,6 @@ public class BinArrivedAtPort extends Event {
             return;
         }
 
-        // --- Guard: grid and bin must exist ---
         Grid grid = sim.getGrid(gridId);
         if (grid == null) {
             System.err.println("BinArrivedAtPort: unknown grid " + gridId);
@@ -131,24 +120,16 @@ public class BinArrivedAtPort extends Event {
             return;
         }
 
-        // --- Bin reservation ---
-        // If the bin is already reserved by this port (e.g. re-triggered after
-        // an earlier partial pick), skip re-reservation and continue directly.
-        // Otherwise, try to reserve; if another port holds it, join the waiting queue.
         if (bin.getStatus() == Bin.Status.RESERVED && portId.equals(bin.getReservedByPortId())) {
-            // Bin already reserved by us — proceed to picking
         } else {
             boolean reserved = bin.reserve(portId);
             if (!reserved) {
                 System.out.printf("[%s] Bin %s already reserved, port %s added to waiting list%n",
                         sim.getTimeLabel(), binId, portId);
-                return; // Will be retried when the bin is released (see BinPickCompleted)
+                return;
             }
         }
 
-        // --- Pick duration calculation ---
-        // Fragile shipments are picked at half the speed of standard ones.
-        // A uniform random factor in [RANDOM_MIN, RANDOM_MAX] adds ±20% jitter.
         boolean isFragile       = shipment.getHandlingFlags().contains("fragile");
         double  unitsPerSecond  = isFragile ? FRAGILE_UNITS_PER_SECOND : STANDARD_UNITS_PER_SECOND;
         double  baseDuration    = qty / unitsPerSecond;
@@ -156,7 +137,6 @@ public class BinArrivedAtPort extends Event {
         double  pickDuration    = baseDuration * randomFactor;
         double  completionTime  = sim.getCurrentTime() + pickDuration;
 
-        // --- Schedule pick completion ---
         sim.schedule(new BinPickCompleted(
                 completionTime,
                 sim.nextSequence(),

@@ -38,10 +38,6 @@ public class BinTransferStarted extends Event {
     /** Conveyor travel time in seconds; passed through to {@link BinTransferCompleted}. */
     private final double transferDelay;
 
-    // -------------------------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------------------------
-
     /**
      * @param simTime            simulation time at which the transfer is initiated
      * @param sequenceNumber     tie-breaker for same-timestamp events
@@ -65,10 +61,6 @@ public class BinTransferStarted extends Event {
         this.transferDelay     = transferDelay;
     }
 
-    // -------------------------------------------------------------------------
-    // Event execution
-    // -------------------------------------------------------------------------
-
     /**
      * Initiates the bin transfer: marks the bin as in-transit and schedules
      * its arrival at the destination grid.
@@ -80,7 +72,6 @@ public class BinTransferStarted extends Event {
         System.out.printf("[%s] BinTransferStarted: bin=%s %s -> %s (eta=%.0fs)%n",
                 sim.getTimeLabel(), binId, sourceGridId, destinationGridId, transferDelay);
 
-        // --- Guards: source grid and bin must exist ---
         Grid sourceGrid = sim.getGrid(sourceGridId);
         if (sourceGrid == null) {
             System.err.println("BinTransferStarted: unknown source grid " + sourceGridId);
@@ -93,13 +84,8 @@ public class BinTransferStarted extends Event {
             return;
         }
 
-        // Mark as OUTSIDE so other shipments cannot reserve this bin while it
-        // is travelling on the conveyor. Status returns to AVAILABLE in
-        // BinTransferCompleted once the bin reaches the destination grid.
         bin.markOutside();
 
-        // Schedule the arrival; transferDelay is passed through so
-        // BinTransferCompleted can include it in its own logging.
         sim.schedule(new BinTransferCompleted(
                 sim.getCurrentTime() + transferDelay,
                 sim.nextSequence(),

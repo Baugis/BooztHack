@@ -51,10 +51,6 @@ public class Grid {
      */
     private final Map<String, Port> ports;
 
-    // -------------------------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------------------------
-
     /**
      * Creates an empty grid with the given shifts. Bins and ports are added
      * separately after construction via {@link #addBin} and {@link #addPort}.
@@ -69,10 +65,6 @@ public class Grid {
         this.gridQueue = new LinkedList<>();
         this.ports     = new LinkedHashMap<>();
     }
-
-    // -------------------------------------------------------------------------
-    // Bin management
-    // -------------------------------------------------------------------------
 
     /**
      * Registers a bin as physically present on this grid.
@@ -110,10 +102,6 @@ public class Grid {
     public void removeBin(String binId) {
         bins.remove(binId);
     }
-
-    // -------------------------------------------------------------------------
-    // Port management
-    // -------------------------------------------------------------------------
 
     /**
      * Registers a port as belonging to this grid.
@@ -174,10 +162,6 @@ public class Grid {
         return best;
     }
 
-    // -------------------------------------------------------------------------
-    // Grid shipment queue
-    // -------------------------------------------------------------------------
-
     /**
      * Adds a shipment to the back of the grid's waiting queue.
      * Called when no port is immediately available or when a port returns a
@@ -214,10 +198,6 @@ public class Grid {
     public Queue<Shipment> getGridQueue() {
         return new LinkedList<>(gridQueue);
     }
-
-    // -------------------------------------------------------------------------
-    // Accessors
-    // -------------------------------------------------------------------------
 
     /** @return this grid's unique identifier */
     public String getId() { return gridId; }

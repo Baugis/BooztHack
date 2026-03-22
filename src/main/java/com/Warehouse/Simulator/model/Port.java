@@ -32,17 +32,11 @@ import java.util.Set;
  */
 public class Port {
 
-    // -------------------------------------------------------------------------
     // Constants
-    // -------------------------------------------------------------------------
-
     /** Maximum number of shipments allowed in this port's local queue at any time. */
     public static final int MAX_QUEUE_CAPACITY = 20;
 
-    // -------------------------------------------------------------------------
     // Status enum
-    // -------------------------------------------------------------------------
-
     /**
      * All lifecycle states a port can occupy during the simulation.
      */
@@ -68,10 +62,7 @@ public class Port {
         PENDING_CLOSE
     }
 
-    // -------------------------------------------------------------------------
     // Identity & configuration
-    // -------------------------------------------------------------------------
-
     /** Unique port identifier, e.g. "port-AS1-0". */
     private final String portId;
 
@@ -84,10 +75,6 @@ public class Port {
      * are present in this set. Stored as an immutable defensive copy.
      */
     private final Set<String> handlingFlags;
-
-    // -------------------------------------------------------------------------
-    // Runtime state
-    // -------------------------------------------------------------------------
 
     /** Current lifecycle status. Ports start CLOSED until their shift opens. */
     private Status status;
@@ -103,10 +90,6 @@ public class Port {
      * Null when the port is IDLE or CLOSED.
      */
     private Shipment activeShipment;
-
-    // -------------------------------------------------------------------------
-    // Constructor
-    // -------------------------------------------------------------------------
 
     /**
      * Creates a new Port in CLOSED status with an empty shipment queue.
@@ -124,10 +107,6 @@ public class Port {
         this.shipmentQueue  = new ArrayDeque<>();
         this.activeShipment = null;
     }
-
-    // -------------------------------------------------------------------------
-    // Getters
-    // -------------------------------------------------------------------------
 
     /** Returns the unique port identifier. */
     public String getId() { return portId; }
@@ -165,10 +144,6 @@ public class Port {
         return Collections.unmodifiableList(new LinkedList<>(shipmentQueue));
     }
 
-    // -------------------------------------------------------------------------
-    // Compatibility check
-    // -------------------------------------------------------------------------
-
     /**
      * Returns true if this port can process the given shipment.
      * Compatibility requires that the port's handling flags are a superset of
@@ -180,10 +155,6 @@ public class Port {
     public boolean isCompatibleWith(Shipment shipment) {
         return handlingFlags.containsAll(shipment.getHandlingFlags());
     }
-
-    // -------------------------------------------------------------------------
-    // Queue management
-    // -------------------------------------------------------------------------
 
     /**
      * Adds a shipment to the back of this port's queue.
@@ -229,10 +200,6 @@ public class Port {
         return drained;
     }
 
-    // -------------------------------------------------------------------------
-    // Active shipment management
-    // -------------------------------------------------------------------------
-
     /**
      * Sets the given shipment as the one currently being processed and
      * transitions the port from IDLE to BUSY.
@@ -270,10 +237,6 @@ public class Port {
             this.status = Status.IDLE;
         }
     }
-
-    // -------------------------------------------------------------------------
-    // Status transitions
-    // -------------------------------------------------------------------------
 
     /**
      * Opens the port at shift or break end, transitioning CLOSED -> IDLE.
@@ -321,10 +284,6 @@ public class Port {
         this.activeShipment = null;
     }
 
-    // -------------------------------------------------------------------------
-    // Convenience wrappers used by event classes
-    // -------------------------------------------------------------------------
-
     /**
      * Alias for {@link #isCompatibleWith(Shipment)}.
      * Provided for readability at call sites in event classes.
@@ -366,10 +325,6 @@ public class Port {
         }
         return null; // port transitioned to CLOSED — no further work accepted
     }
-
-    // -------------------------------------------------------------------------
-    // Debugging
-    // -------------------------------------------------------------------------
 
     /**
      * Returns a concise human-readable description of this port's current state,
