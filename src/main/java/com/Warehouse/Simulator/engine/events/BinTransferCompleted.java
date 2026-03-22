@@ -1,5 +1,11 @@
 package com.Warehouse.Simulator.engine.events;
 
+import com.Warehouse.Simulator.engine.Simulation;
+import com.Warehouse.Simulator.model.Bin;
+import com.Warehouse.Simulator.model.Grid;
+import com.Warehouse.Simulator.model.Port;
+import com.Warehouse.Simulator.model.Shipment;
+import com.Warehouse.Simulator.router.RouterDTOs;
 /**
  * EVENT: BinTransferCompleted
  *
