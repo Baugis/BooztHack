@@ -78,8 +78,17 @@ public class RouterDTOs {
      *       router can factor truck deadlines into its prioritisation logic.
      */
     public static class TruckArrivalWrapper {
-        /** List of truck schedule entries. Currently always empty — see TODO above. */
-        public List<Object> schedules = new ArrayList<>();
+        public List<TruckScheduleDto> schedules = new ArrayList<>();
+    }
+
+    public static class TruckScheduleDto {
+        @SerializedName("sorting_direction")
+        public String sortingDirection;
+
+        @SerializedName("pull_times")
+        public List<String> pullTimes = new ArrayList<>();
+
+        public List<String> weekdays = new ArrayList<>();
     }
 
     /**
