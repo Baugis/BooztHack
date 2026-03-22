@@ -5,6 +5,9 @@ import com.Warehouse.Simulator.model.Grid;
 import com.Warehouse.Simulator.model.Port;
 import com.Warehouse.Simulator.model.Shift;
 import com.Warehouse.Simulator.model.Shipment;
+import com.Warehouse.Simulator.model.Bin;
+import com.Warehouse.Simulator.router.RouterDTOs;
+
 
 /**
  * EVENT: BreakEndEvent
