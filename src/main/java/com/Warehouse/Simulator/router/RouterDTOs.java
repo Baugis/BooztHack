@@ -69,14 +69,6 @@ public class RouterDTOs {
         public List<GridDto> grids = new ArrayList<>();
     }
 
-    /**
-     * Wrapper around the list of truck arrival schedules.
-     * Exists to match the router's expected JSON structure:
-     * {"truck_arrival_schedules": {"schedules": [...]}}.
-     *
-     * TODO: populate schedules from ParamsLoader.loadTruckSchedules() so the
-     *       router can factor truck deadlines into its prioritisation logic.
-     */
     public static class TruckArrivalWrapper {
         public List<TruckScheduleDto> schedules = new ArrayList<>();
     }
