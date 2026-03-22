@@ -174,8 +174,7 @@ public class Main {
             sim.run();
             System.out.println("\n========== SIMULATION END ==========\n");
 
-            logger.close(); // Don't forget to close it!
-        
+            logger.close();         
         } catch (java.io.IOException e) {
             System.err.println("Failed to initialize event logger: " + e.getMessage());
             return;
