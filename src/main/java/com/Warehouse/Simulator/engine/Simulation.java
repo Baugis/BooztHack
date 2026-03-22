@@ -1,5 +1,6 @@
 package com.Warehouse.Simulator.engine;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -206,11 +207,12 @@ public class Simulation {
      * @return ISO-8601 UTC timestamp string
      */
     private String shiftTimeToIso(String hhMm) {
-        LocalTime t = LocalTime.parse(hhMm, TIME_FMT);
-        Instant instant = epochInstant
-                .truncatedTo(ChronoUnit.DAYS)
-                .plus(t.toSecondOfDay(), ChronoUnit.SECONDS);
-        return instant.toString();
+    LocalTime t = LocalTime.parse(hhMm, TIME_FMT);
+    Instant currentSimInstant = epochInstant.plusSeconds((long) this.currentTime);
+    LocalDate currentDate = currentSimInstant.atZone(java.time.ZoneOffset.UTC).toLocalDate();
+    
+    return currentDate.atTime(t).atZone(java.time.ZoneOffset.UTC)
+            .format(java.time.format.DateTimeFormatter.ISO_INSTANT);
     }
 
     /**
@@ -223,17 +225,19 @@ public class Simulation {
      * @param startHhMm  the shift's start time, used to detect midnight wrap
      * @return ISO-8601 UTC timestamp string, possibly on the following day
      */
-    private String shiftTimeToIso(String hhMm, String startHhMm) {
-        LocalTime t     = LocalTime.parse(hhMm,      TIME_FMT);
-        LocalTime start = LocalTime.parse(startHhMm, TIME_FMT);
-        Instant instant = epochInstant
-                .truncatedTo(ChronoUnit.DAYS)
-                .plus(t.toSecondOfDay(), ChronoUnit.SECONDS);
-        if (!t.isAfter(start)) {
-            instant = instant.plus(1, ChronoUnit.DAYS); // end time wraps to next day
+        private String shiftTimeToIso(String hhMm, String startHhMm) {
+            LocalTime t     = LocalTime.parse(hhMm,      TIME_FMT);
+            LocalTime start = LocalTime.parse(startHhMm, TIME_FMT);
+            Instant currentSimInstant = epochInstant.plusSeconds((long) this.currentTime);
+            java.time.LocalDate currentDate = currentSimInstant.atZone(java.time.ZoneOffset.UTC).toLocalDate();
+        
+            if (!t.isAfter(start)) {
+                currentDate = currentDate.plusDays(1);
+            }
+        
+            return currentDate.atTime(t).atZone(java.time.ZoneOffset.UTC)
+                .format(java.time.format.DateTimeFormatter.ISO_INSTANT);
         }
-        return instant.toString();
-    }
 
     /**
      * Returns a human-readable simulation time label for console logging.
@@ -350,7 +354,7 @@ public class Simulation {
             RouterDTOs.GridDto gDto = new RouterDTOs.GridDto();
             gDto.id = grid.getId();
             for (Shift shift : grid.getShifts()) {
-                RouterDTOs.ShiftDto sDto = new RouterDTOs.ShiftDto();
+                RouterDTOs.ShiftDto sDto = new RouterDTOs.ShiftDto();   
                 sDto.startAt = shiftTimeToIso(shift.getStartAt());
                 sDto.endAt   = shiftTimeToIso(shift.getEndAt(), shift.getStartAt());
                 for (Shift.PortConfig cfg : shift.portConfig) {
