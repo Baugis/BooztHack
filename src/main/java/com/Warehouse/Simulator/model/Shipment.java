@@ -373,5 +373,5 @@ public class Shipment implements Serializable {
      *
      * @param simTime simulation time of arrival in seconds from epoch
      */
-    protected void setReceivedAt(double simTime) { this.receivedTime = simTime; }
+    public void setReceivedAt(double simTime) { this.receivedTime = simTime; }
 }
